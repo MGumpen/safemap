@@ -51,3 +51,21 @@ Se [BRANCH_PROTECTION.md](BRANCH_PROTECTION.md) for fullstendig guide.
 ## Alternativ: Automatisk via Probot
 1. Installer: https://github.com/apps/settings
 2. Konfigurasjonen i `.github/settings.yml` vil synkroniseres automatisk
+
+---
+
+## Visuell Flyt
+
+```
+Developer → Feature Branch → Pull Request → CI Runs
+                                    ↓
+                              Status Checks
+                              ✅ build-and-test (3.10)
+                              ✅ build-and-test (3.11)
+                              ✅ build-and-test (3.12)
+                              ✅ security-scan
+                                    ↓
+                              ✅ Code Review
+                                    ↓
+                              [Merge] → main branch
+```

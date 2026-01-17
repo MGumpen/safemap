@@ -6,6 +6,34 @@ Dette dokumentet forklarer hvordan du konfigurerer GitHub til å kreve at CI-tes
 
 Status-sjekkene fra GitHub Actions vises ikke som obligatoriske når man skal merge en pull request. Vi ønsker at CI-workflowen må fullføres med suksess før det er mulig å merge til `main`.
 
+## Visuell oversikt
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Pull Request til main                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  Status Checks:                                               │
+│  ✅ build-and-test (3.10) - Required                         │
+│  ✅ build-and-test (3.11) - Required                         │
+│  ✅ build-and-test (3.12) - Required                         │
+│  ✅ security-scan - Required                                 │
+│                                                               │
+│  Reviews:                                                     │
+│  ✅ 1 approval required                                      │
+│                                                               │
+│  ┌───────────────────────────────────┐                      │
+│  │  [Merge pull request] ✅ ENABLED   │                      │
+│  └───────────────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────┘
+
+Med branch protection aktivert:
+❌ Direkte push til main → BLOKKERT
+❌ Merge uten godkjenning → BLOKKERT  
+❌ Merge med feilende tester → BLOKKERT
+✅ Merge med godkjenning + grønne tester → TILLATT
+```
+
 ## Løsning
 
 Det finnes to måter å konfigurere dette på i GitHub:
