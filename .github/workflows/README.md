@@ -56,6 +56,23 @@ Simply push code or create a pull request, and the workflow will run automatical
 **Usage:**
 Check the workflow runs for security alerts and update recommendations.
 
+### 4. Verify Branch Protection - `verify-protection.yml`
+
+**Triggers:**
+- Manual trigger via GitHub Actions UI
+- Weekly schedule (Mondays at 9:00 AM UTC)
+
+**What it does:**
+- Verifies that branch protection configuration files exist
+- Lists the CI jobs that should be required as status checks
+- Provides links and instructions for enabling branch protection
+
+**Usage:**
+1. **Manual**: Go to Actions → Verify Branch Protection → Run workflow
+2. **Automatic**: Runs weekly to remind about branch protection setup
+
+**Note**: This workflow only verifies configuration files. Branch protection must be enabled manually in repository settings or via the Probot Settings app.
+
 ## Setup Instructions
 
 ### Prerequisites
@@ -161,6 +178,39 @@ Edit `cd.yml` and add your deployment commands. Examples:
 
 - Run `ruff check .` locally to see issues
 - Run `ruff format .` to auto-format code
+
+## Branch Protection
+
+To ensure code quality and prevent direct pushes to `main`, branch protection should be enabled.
+
+### Required Status Checks
+
+The following CI jobs should be configured as required status checks:
+- `build-and-test (3.10)` - Python 3.10 tests
+- `build-and-test (3.11)` - Python 3.11 tests
+- `build-and-test (3.12)` - Python 3.12 tests
+- `security-scan` - Security vulnerability scanning
+
+### How to Enable
+
+**See detailed instructions in [.github/BRANCH_PROTECTION.md](../BRANCH_PROTECTION.md)**
+
+Quick setup:
+1. Go to repository **Settings** → **Branches**
+2. Add branch protection rule for `main`
+3. Enable **"Require status checks to pass before merging"**
+4. Select the required status checks listed above
+5. Enable **"Require a pull request before merging"** (recommended)
+6. Save changes
+
+**Alternative:** Install the [Probot Settings app](https://github.com/apps/settings) to automatically apply the configuration from `.github/settings.yml`
+
+### Verification
+
+Run the "Verify Branch Protection" workflow to check your configuration:
+```
+Actions → Verify Branch Protection → Run workflow
+```
 
 ## Security
 
