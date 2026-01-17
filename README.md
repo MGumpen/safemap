@@ -22,6 +22,15 @@ Når kode pushes til `main` eller `develop` branch, kjører følgende automatisk
 - 📦 **Bygging** av applikasjonen
 - 📊 **Testdekning** - generering av coverage-rapporter
 
+### Branch Protection
+
+For å sikre kodekvalitet er `main` branch beskyttet med obligatoriske status-sjekker:
+- Alle CI-tester må bestå før merge
+- Pull requests er påkrevd
+- Code review er påkrevd
+
+**Se [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for instruksjoner om hvordan du aktiverer branch protection.**
+
 ### Deployment
 
 Ved publisering av en ny release, bygges applikasjonen automatisk og klargjøres for deployment.
