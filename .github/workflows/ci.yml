@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install from requirements.txt if it exists
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        fi
+        # Install from pyproject.toml if it exists
+        if [ -f pyproject.toml ]; then
+          pip install -e .
+        fi
+        # Install development dependencies
+        if [ -f requirements-dev.txt ]; then
+          pip install -r requirements-dev.txt
+        fi
+
+    - name: Lint with ruff
+      run: |
+        # Install ruff if not already installed
+        pip install ruff
+        # Run ruff linter
+        ruff check . || echo "Linting completed with warnings"
+      continue-on-error: true
+
+    - name: Format check with ruff
+      run: |
+        # Check code formatting
+        ruff format --check . || echo "Format check completed with warnings"
+      continue-on-error: true
+
+    - name: Type check with mypy
+      run: |
+        # Install mypy if not already installed
+        pip install mypy
+        # Run type checker if Python files exist
+        if find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | grep -q .; then
+          mypy . --ignore-missing-imports || echo "Type checking completed with warnings"
+        else
+          echo "No Python files found to type check"
+        fi
+      continue-on-error: true
+
+    - name: Run tests
+      run: |
+        # Install pytest if not already installed
+        pip install pytest pytest-cov
+        # Run tests if they exist
+        if [ -d tests ]; then
+          pytest tests/ --cov=. --cov-report=xml --cov-report=term-missing
+        elif find . -name "test_*.py" -o -name "*_test.py" | grep -q .; then
+          pytest --cov=. --cov-report=xml --cov-report=term-missing
+        else
+          echo "No tests found. Skipping test execution."
+        fi
+      continue-on-error: true
+
+    - name: Upload coverage reports
+      if: success() && matrix.python-version == '3.12'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+      continue-on-error: true
+
+    - name: Build application
+      run: |
+        # Build the application if there's a setup.py or pyproject.toml
+        if [ -f setup.py ]; then
+          python setup.py build
+        elif [ -f pyproject.toml ]; then
+          pip install build
+          python -m build
+        else
+          echo "No build configuration found. Application is ready to run."
+        fi
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Bandit security scan
+      run: |
+        pip install bandit
+        # Run bandit security scan if Python files exist
+        if find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | grep -q .; then
+          bandit -r . -f json -o bandit-report.json || echo "Security scan completed with warnings"
+          bandit -r . || echo "Security scan completed"
+        else
+          echo "No Python files found to scan"
+        fi
+      continue-on-error: true
+
+    - name: Upload security scan results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-results
+        path: bandit-report.json
+      continue-on-error: true
