@@ -1,0 +1,60 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install pip-audit
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-audit
+
+    - name: Audit dependencies
+      run: |
+        if [ -f requirements.txt ]; then
+          pip-audit -r requirements.txt || echo "Vulnerabilities found in dependencies"
+        else
+          echo "No requirements.txt found"
+        fi
+      continue-on-error: true
+
+    - name: Check for outdated packages
+      run: |
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+          pip list --outdated
+        else
+          echo "No requirements.txt found"
+        fi
+      continue-on-error: true
+
+    - name: Generate dependency report
+      run: |
+        echo "# Dependency Report" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        if [ -f requirements.txt ]; then
+          echo "## Installed Packages" >> dependency-report.md
+          pip list >> dependency-report.md
+        fi
+
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report
+        path: dependency-report.md
