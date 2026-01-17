@@ -37,7 +37,7 @@ jobs:
           echo "✅ Found .github/workflows/ci.yml"
           echo "📋 CI jobs that should be required status checks:"
           echo ""
-          grep -E "^  [a-z-]+:" .github/workflows/ci.yml | sed 's/://g' | sed 's/^  /  - /' || true
+          grep -E "^  [a-z0-9_-]+:" .github/workflows/ci.yml | sed 's/://g' | sed 's/^  /  - /' || true
           echo ""
           echo "Note: For matrix jobs, each variant becomes a separate status check"
           echo "Example: 'build-and-test' with matrix python-version becomes:"
@@ -72,7 +72,7 @@ jobs:
         echo "==========="
         echo ""
         echo "Repository: ${{ github.repository }}"
-        echo "Default branch: ${{ github.event.repository.default_branch }}"
+        echo "Branch being protected: main"
         echo ""
         echo "✅ Configuration files are in place"
         echo "✅ CI workflow is configured"

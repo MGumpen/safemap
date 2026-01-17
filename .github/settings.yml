@@ -82,6 +82,8 @@ branches:
       allow_deletions: false
 
   # Optional: Protection for develop branch
+  # Note: develop branch has lighter requirements to allow faster iteration
+  # Only Python 3.12 (latest) is required for develop, while main requires all versions
   - name: develop
     protection:
       required_status_checks:
