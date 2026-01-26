@@ -1,40 +1,107 @@
 # SafeMap
 
-![CI Status](https://github.com/MGumpen/safemap/actions/workflows/ci.yml/badge.svg)
-
 SafeMap er et GIS-basert prosjekt som undersøker totalforsvaret i Norge gjennom geografisk analyse av samfunnets beredskap og robusthet. Prosjektet bruker åpne geodata til å identifisere sårbarheter, avhengigheter og tilgjengelighet knyttet til innbyggere og kritisk infrastruktur, med mål om å støtte både offentlige beslutninger og økt beredskapsforståelse hos befolkningen.
 
-Appen er en prosjektoppgave i faget IS-218 Geografiske informasjonssystemer, IT og IoT ved UiA i samarbeid med Kartverket og Norkart.
+Prosjektet er en del av faget IS-218 Geografiske informasjonssystemer, IT og IoT ved Universitetet i Agder, utviklet i samarbeid med Kartverket og Norkart. Fokusområdet er totalforsvarsåret 2026.
 
-Prosjektoppgaven har fokus på totalforsvarsåret 2026.
+## Teknisk Stack
 
-## 🚀 CI/CD
+- **Backend**: Python 3.10+
+- **Frontend**: HTML, CSS
+- **GIS**: Åpne geodata fra norske kilder
+- **CI/CD**: GitHub Actions
 
-Dette prosjektet bruker GitHub Actions for automatisk bygging og testing av koden.
+## Kom i gang
 
-### Automatiske bygge-prosesser
+### Forutsetninger
 
-Når kode pushes til `main` eller `develop` branch, kjører følgende automatisk:
+- Python 3.10 eller nyere
+- Git
 
-- ✅ **Testing** på Python 3.10, 3.11 og 3.12
-- 🔍 **Kodekvalitet** - linting med Ruff og typesjekking med mypy
-- 🔒 **Sikkerhetsskanning** - automatisk sjekk for sårbarheter med Bandit
-- 📦 **Bygging** av applikasjonen
-- 📊 **Testdekning** - generering av coverage-rapporter
+### Installasjon
+
+```bash
+# Klon repositoriet
+git clone https://github.com/MGumpen/safemap.git
+cd safemap
+
+# Opprett virtuelt miljø
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Installer avhengigheter
+pip install -r requirements.txt
+```
+
+## Utvikling
+
+### Prosjektstruktur
+
+```
+safemap/
+├── .github/          # CI/CD workflows og konfigurasjon
+├── src/              # Applikasjonskode
+├── tests/            # Tester
+├── static/           # HTML, CSS, JavaScript
+└── requirements.txt  # Python-avhengigheter
+```
+
+### Kodekvalitet
+
+Prosjektet bruker følgende verktøy for å sikre høy kodekvalitet:
+
+- **Ruff**: Linting og formattering
+- **mypy**: Type checking
+- **Bandit**: Sikkerhetsskanning
+- **pytest**: Testing og coverage
+
+Kjør kvalitetssjekker lokalt før commit:
+
+```bash
+ruff check .
+ruff format .
+mypy .
+pytest
+```
+
+## Continuous Integration
+
+GitHub Actions kjører automatisk ved push til `main` eller `dev` branch:
+
+- Testing på Python 3.10, 3.11 og 3.12
+- Kodekvalitetssjekk med Ruff og mypy
+- Sikkerhetsskanning med Bandit
+- Generering av testdekning
+- Bygging av applikasjonen
 
 ### Branch Protection
 
-For å sikre kodekvalitet er `main` branch beskyttet med obligatoriske status-sjekker:
+`main` branch er beskyttet med obligatoriske status-sjekker:
 - Alle CI-tester må bestå før merge
-- Pull requests er påkrevd
-- Code review er påkrevd
+- Pull requests kreves
+- Code review kreves
 
-**Se [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for instruksjoner om hvordan du aktiverer branch protection.**
+Se [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for konfigurasjonsinstruksjoner.
 
-### Deployment
+## Bidra
 
-Ved publisering av en ny release, bygges applikasjonen automatisk og klargjøres for deployment.
+Vi setter pris på bidrag til prosjektet. Les [CONTRIBUTING.md](CONTRIBUTING.md) for retningslinjer om hvordan du bidrar, inkludert:
 
-### Mer informasjon
+- Oppsett av utviklingsmiljø
+- Coding standards
+- Testing-krav
+- Pull request prosess
 
-Se [.github/workflows/README.md](.github/workflows/README.md) for detaljert dokumentasjon om CI/CD-oppsettet.
+## Lisens
+
+Dette prosjektet er lisensiert under vilkårene i [LICENSE](LICENSE)-filen.
+
+## Kontakt
+
+Prosjektet er utviklet som en del av IS-218 ved Universitetet i Agder i samarbeid med Kartverket og Norkart.
+
+## Dokumentasjon
+
+- [CI/CD Workflows](.github/workflows/README.md) - Detaljert dokumentasjon om automatisering
+- [Branch Protection](.github/BRANCH_PROTECTION.md) - Instruksjoner for branch protection
+- [Contributing](CONTRIBUTING.md) - Guide for bidragsytere
