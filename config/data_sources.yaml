@@ -1,0 +1,49 @@
+# SafeMap Data Sources Configuration
+# Defines where to fetch POI data from
+
+# DSB (Direktoratet for samfunnssikkerhet og beredskap) WFS
+dsb_wfs:
+  base_url: "https://wfs.geonorge.no/skwms1/wfs.brannstasjoner"
+  version: "2.0.0"
+  layers:
+    fire:
+      layer_name: "Brannstasjon"
+      name_field: "navn"
+      type: "fire"
+
+# OpenStreetMap Overpass API
+overpass:
+  url: "https://overpass-api.de/api/interpreter"
+  timeout: 180
+  
+  # Queries for Norway
+  queries:
+    hospital:
+      type: "hospital"
+      query: |
+        [out:json][timeout:120];
+        area["ISO3166-1"="NO"]->.norway;
+        (
+          node["amenity"="hospital"](area.norway);
+          way["amenity"="hospital"](area.norway);
+          relation["amenity"="hospital"](area.norway);
+        );
+        out center;
+    
+    police:
+      type: "police"
+      query: |
+        [out:json][timeout:120];
+        area["ISO3166-1"="NO"]->.norway;
+        (
+          node["amenity"="police"](area.norway);
+          way["amenity"="police"](area.norway);
+          relation["amenity"="police"](area.norway);
+        );
+        out center;
+
+# Attribution requirements
+attribution:
+  dsb: "Data fra Direktoratet for samfunnssikkerhet og beredskap (DSB), via GeoNorge"
+  osm: "© OpenStreetMap contributors"
+  kartverket: "© Kartverket"

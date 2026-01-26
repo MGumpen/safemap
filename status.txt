@@ -1,0 +1,13 @@
+=== SafeMap Status Check ===
+ERROR: connection to server at "127.0.0.1", port 5433 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+
+Traceback (most recent call last):
+  File "c:\Users\zentp\gisoppgave\safemap\scripts\check_and_ingest.py", line 27, in <module>
+    conn = psycopg2.connect(DB_URL)
+  File "C:\Users\zentp\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "127.0.0.1", port 5433 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+
+

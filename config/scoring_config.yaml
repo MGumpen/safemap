@@ -1,0 +1,42 @@
+# SafeMap Scoring Configuration
+# This file defines how safety scores are calculated
+
+model_version: "v1.0"
+
+# POI types and their weights in the final score
+# Weights should sum to 1.0
+weights:
+  fire: 0.40
+  hospital: 0.35
+  police: 0.25
+
+# Distance decay parameters
+# Score for each POI type = 100 * exp(-distance / decay_meters)
+# Lower decay_meters = score drops faster with distance
+decay_meters:
+  fire: 2000      # Fire response is most time-critical
+  hospital: 6000  # Hospitals serve larger areas
+  police: 4000    # Police patrol areas
+
+# Grid resolution settings by zoom level
+# Maps frontend zoom level to grid cell size in meters
+grid_resolutions:
+  5: 10000   # Country overview
+  6: 5000
+  7: 2500
+  8: 2000
+  9: 1000
+  10: 500
+  11: 500
+  12: 250
+  13: 250
+  14: 100    # Local detail
+
+# Maximum number of grid cells to return in one request
+max_grid_cells: 5000
+
+# Cache settings
+cache:
+  point_precision: 4      # Decimal places for point cache (4 = ~11m precision)
+  grid_ttl_hours: 168     # Grid cache valid for 1 week
+  point_ttl_hours: 720    # Point cache valid for 30 days
