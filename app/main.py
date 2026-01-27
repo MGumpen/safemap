@@ -41,3 +41,45 @@ def get_health_institutions():
             status_code=500,
             content={"error": f"Feil ved lasting av data: {str(e)}"}
         )
+
+@app.get("/api/emergency-clinics")
+def get_emergency_clinics():
+    """Henter kommunale legevakter fra lokal JSON-fil"""
+    
+    json_file = BASE_DIR.parent / "src" / "legevakter.json"
+    
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return JSONResponse(content=data)
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Legevakt data ikke funnet"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Feil ved lasting av data: {str(e)}"}
+        )
+
+@app.get("/api/legevakter")
+def get_legevakter():
+    """Henter kommunale legevakter fra lokal JSON-fil"""
+    
+    json_file = BASE_DIR.parent / "src" / "legevakter.json"
+    
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return JSONResponse(content=data)
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Legevakt data ikke funnet"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Feil ved lasting av data: {str(e)}"}
+        )
