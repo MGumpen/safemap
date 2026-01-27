@@ -13,3 +13,44 @@ html, body {
   height: 100vh;
   width: 100vw;
 }
+
+/* Custom styles for hospital markers */
+.hospital-marker {
+  background: transparent;
+}
+
+.hospital-marker div {
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.hospital-marker:hover div {
+  transform: scale(1.15);
+}
+
+/* Loading indicator */
+.loading-indicator {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Custom popup styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-content h3 {
+  border-bottom: 2px solid;
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+}

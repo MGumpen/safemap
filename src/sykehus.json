@@ -1,0 +1,365 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Oslo Universitetssykehus - Ullevål",
+        "type": "Universitetssykehus",
+        "kommune": "Oslo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.7363, 59.9426]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Oslo Universitetssykehus - Rikshospitalet",
+        "type": "Universitetssykehus",
+        "kommune": "Oslo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.7200, 59.9447]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Akershus Universitetssykehus",
+        "type": "Universitetssykehus",
+        "kommune": "Lørenskog"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.9575, 59.9233]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Haukeland Universitetssykehus",
+        "type": "Universitetssykehus",
+        "kommune": "Bergen"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.3571, 60.3695]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Stavanger Universitetssykehus",
+        "type": "Universitetssykehus",
+        "kommune": "Stavanger"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.7344, 58.9276]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "St. Olavs Hospital",
+        "type": "Universitetssykehus",
+        "kommune": "Trondheim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.3762, 63.4195]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Universitetssykehuset Nord-Norge - Tromsø",
+        "type": "Universitetssykehus",
+        "kommune": "Tromsø"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [18.9726, 69.6826]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sørlandet Sykehus - Kristiansand",
+        "type": "Sykehus",
+        "kommune": "Kristiansand"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [8.0182, 58.1461]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sørlandet Sykehus - Arendal",
+        "type": "Sykehus",
+        "kommune": "Arendal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [8.7730, 58.4631]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Østfold - Kalnes",
+        "type": "Sykehus",
+        "kommune": "Sarpsborg"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.0726, 59.1926]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Innlandet - Hamar",
+        "type": "Sykehus",
+        "kommune": "Hamar"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.0678, 60.7945]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Innlandet - Lillehammer",
+        "type": "Sykehus",
+        "kommune": "Lillehammer"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.4662, 61.1153]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Innlandet - Gjøvik",
+        "type": "Sykehus",
+        "kommune": "Gjøvik"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.6915, 60.7957]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Vestre Viken - Drammen Sykehus",
+        "type": "Sykehus",
+        "kommune": "Drammen"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.2045, 59.7321]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Vestre Viken - Bærum Sykehus",
+        "type": "Sykehus",
+        "kommune": "Bærum"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.6012, 59.8937]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Telemark - Skien",
+        "type": "Sykehus",
+        "kommune": "Skien"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [9.5946, 59.2088]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Haraldsplass Diakonale Sykehus",
+        "type": "Privat sykehus",
+        "kommune": "Bergen"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.3407, 60.3755]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Lovisenberg Diakonale Sykehus",
+        "type": "Privat sykehus",
+        "kommune": "Oslo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.7630, 59.9283]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Diakonhjemmet Sykehus",
+        "type": "Privat sykehus",
+        "kommune": "Oslo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.7091, 59.9285]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helse Bergen - Haukeland",
+        "type": "Sykehus",
+        "kommune": "Bergen"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.3571, 60.3695]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helse Førde",
+        "type": "Sykehus",
+        "kommune": "Førde"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.8550, 61.4566]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helse Fonna - Haugesund Sjukehus",
+        "type": "Sykehus",
+        "kommune": "Haugesund"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.2680, 59.4138]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helse Møre og Romsdal - Ålesund",
+        "type": "Sykehus",
+        "kommune": "Ålesund"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [6.1549, 62.4722]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helse Møre og Romsdal - Molde",
+        "type": "Sykehus",
+        "kommune": "Molde"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [7.1591, 62.7375]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Nordlandssykehuset - Bodø",
+        "type": "Sykehus",
+        "kommune": "Bodø"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [14.4378, 67.2804]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helgelandssykehuset - Mo i Rana",
+        "type": "Sykehus",
+        "kommune": "Rana"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [14.1426, 66.3128]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Universitetssykehuset Nord-Norge - Harstad",
+        "type": "Sykehus",
+        "kommune": "Harstad"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [16.5411, 68.7980]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Østfold - Moss",
+        "type": "Sykehus",
+        "kommune": "Moss"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.6581, 59.4351]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset i Vestfold - Tønsberg",
+        "type": "Sykehus",
+        "kommune": "Tønsberg"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.4078, 59.2669]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Telemark - Porsgrunn",
+        "type": "Sykehus",
+        "kommune": "Porsgrunn"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [9.6561, 59.1405]
+      }
+    }
+  ]
+}
