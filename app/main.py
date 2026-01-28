@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from app.database import get_db_connection, test_connection
 
 app = FastAPI(title="Safemap API")
 
@@ -19,3 +20,24 @@ def home(request: Request):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/api/db-test")
+async def db_test():
+    """Test database connection"""
+    success, result = test_connection()
+    if success:
+        return {
+            "status": "connected",
+            "message": "Supabase is connected! ✅",
+            "postgres_version": result
+        }
+    else:
+        return {
+            "status": "error",
+            "message": "Database connection failed",
+            "error": result
+        }
+
+# ---- DIN KODE HER ----
+# Legg til dine egne tabeller og endepunkter under her
+
