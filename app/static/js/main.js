@@ -1,7 +1,57 @@
 console.log("Safemap landing page loaded");
 
-// Initialize map centered on UiA (Universitetet i Agder) in Kristiansand
-const map = L.map('map').setView([58.1456, 8.0119], 14);
+// Default fallback location (UiA)
+const DEFAULT_LOCATION = [58.1456, 8.0119];
+const DEFAULT_ZOOM = 14;
+
+// Initialize map - will be centered after geolocation
+const map = L.map('map').setView(DEFAULT_LOCATION, DEFAULT_ZOOM);
+
+// Variable to store user location circle
+let userLocationCircle = null;
+
+// Try to get and watch user's current location
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+      
+      console.log(`Din lokasjon: ${lat}, ${lng} (nøyaktighet: ${accuracy}m)`);
+      
+      // Center map on first location
+      if (!userLocationCircle) {
+        map.setView([lat, lng], DEFAULT_ZOOM);
+      }
+      
+      // Remove old circle if it exists
+      if (userLocationCircle) {
+        map.removeLayer(userLocationCircle);
+      }
+      
+      // Add new circle at current position
+      userLocationCircle = L.circleMarker([lat, lng], {
+        radius: 8,
+        fillColor: '#4285F4',
+        color: '#ffffff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map).bindPopup('Din nåværende lokasjon');
+    },
+    (error) => {
+      console.log(`Kunne ikke hente din lokasjon: ${error.message}. Bruker standard lokasjon.`);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0
+    }
+  );
+} else {
+  console.log("Nettleseren støtter ikke geolocation");
+}
 
 // Add OpenStreetMap tiles
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
