@@ -1,0 +1,257 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "LEGEVAKTEN I ARENDAL INTERKOMMUNAL LEGEVAKT",
+        "adresse": "Sykehusveien 1",
+        "postnummer": "4838",
+        "poststed": "ARENDAL",
+        "kommune": "ARENDAL",
+        "organisasjonsnummer": "989567764"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          8.75525,
+          58.46676
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "HEDMARKEN LEGEVAKT",
+        "adresse": "Tunbekkvegen 8",
+        "postnummer": "2312",
+        "poststed": "OTTESTAD",
+        "kommune": "STANGE",
+        "organisasjonsnummer": "998563143"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.117493,
+          60.78637
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "KONGSVINGER LEGEVAKT",
+        "adresse": "Parkvegen 35",
+        "postnummer": "2212",
+        "poststed": "KONGSVINGER",
+        "kommune": "KONGSVINGER",
+        "organisasjonsnummer": "998557089"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.9940222,
+          60.1947258
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "SARPSBORG LEGEVAKT",
+        "adresse": "Roald Amundsens gate 17",
+        "postnummer": "1723",
+        "poststed": "SARPSBORG",
+        "kommune": "SARPSBORG",
+        "organisasjonsnummer": "974642220"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1096266,
+          59.2858069
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "ELVERUM INTERKOMMUNALE LEGEVAKT",
+        "adresse": "Kirkevegen 47",
+        "postnummer": "2413",
+        "poststed": "ELVERUM",
+        "kommune": "ELVERUM",
+        "organisasjonsnummer": "913457277"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.5736528,
+          60.8770903
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "LILLEHAMMER INTERKOMMUNALE LEGEVAKT",
+        "adresse": "Anders Sandvigs gate 17",
+        "postnummer": "2609",
+        "poststed": "LILLEHAMMER",
+        "kommune": "LILLEHAMMER",
+        "organisasjonsnummer": "898564282"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.4736491,
+          61.1124326
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "LOFOTEN INTERKOMMUNALE LEGEVAKT",
+        "adresse": "Risfaret 8",
+        "postnummer": "8372",
+        "poststed": "GRAVDAL",
+        "kommune": "VESTVÅGØY",
+        "organisasjonsnummer": "998526280"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.535254,
+          68.119867
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "NORDHORDLAND INTERKOMMUNALE LEGEVAKT",
+        "adresse": "Kvassnesvegen 48A",
+        "postnummer": "5914",
+        "poststed": "ISDALSTØ",
+        "kommune": "ALVER",
+        "organisasjonsnummer": "988240869"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.2913055,
+          60.5445553
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "INNHERRED INTERKOMMUNALE LEGEVAKT IKS",
+        "adresse": "Kirkegata 2D",
+        "postnummer": "7600",
+        "poststed": "LEVANGER",
+        "kommune": "LEVANGER",
+        "organisasjonsnummer": "990584079"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.2867028,
+          63.7419987
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "SUNNHORDLAND INTERKOMMUNALE LEGEVAKT IKS",
+        "adresse": "Tysevegen 62",
+        "postnummer": "5416",
+        "poststed": "STORD",
+        "kommune": "STORD",
+        "organisasjonsnummer": "812998552"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.512422,
+          59.791993
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "FREDERIK GLENT-SANDAL LEGEVAKT KOMMUNAL",
+        "adresse": "Parkveien 10",
+        "postnummer": "8400",
+        "poststed": "SORTLAND",
+        "kommune": "SORTLAND",
+        "organisasjonsnummer": "934343271"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.409828,
+          68.696104
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "LUNNER OG GRAN INTERKOMMUNALE LEGEVAKT",
+        "adresse": "Rådhusvegen 39",
+        "postnummer": "2770",
+        "poststed": "JAREN",
+        "kommune": "GRAN",
+        "organisasjonsnummer": "918645829"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.5604211,
+          60.3929532
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "SKIEN KOMMUNE - SKIEN INTERKOMMUNALE LEGEVAKT",
+        "adresse": "Ulefossvegen 55",
+        "postnummer": "3710",
+        "poststed": "SKIEN",
+        "kommune": "SKIEN",
+        "organisasjonsnummer": "976820991"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          9.5941716,
+          59.1930521
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "KRISTIANSAND LEGEVAKT",
+        "adresse": "Egveien 102",
+        "postnummer": "4615",
+        "poststed": "KRISTIANSAND",
+        "kommune": "KRISTIANSAND",
+        "organisasjonsnummer": "974761211"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          7.979997,
+          58.163142
+        ]
+      }
+    }
+  ]
+}
