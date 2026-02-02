@@ -148,3 +148,4 @@ async function loadLegevakter(hospitalCount) {
 
 // Load hospitals when page loads
 loadHospitals();
+
