@@ -6,6 +6,7 @@ const DEFAULT_ZOOM = 14;
 
 // Initialize map - will be centered after geolocation
 const map = L.map('map').setView(DEFAULT_LOCATION, DEFAULT_ZOOM);
+let hasUserCentered = false;
 
 // Variable to store user location circle
 let userLocationCircle = null;
@@ -23,6 +24,7 @@ if (navigator.geolocation) {
       // Center map on first location
       if (!userLocationCircle) {
         map.setView([lat, lng], DEFAULT_ZOOM);
+        hasUserCentered = true;
       }
 
       // Remove old circle if it exists
@@ -224,7 +226,7 @@ const loadStations = async () => {
     const data = await res.json();
     if (Array.isArray(data)) {
       data.forEach(addStationToMap);
-      if (markers.getLayers().length > 0) {
+      if (!hasUserCentered && markers.getLayers().length > 0) {
         map.fitBounds(markers.getBounds().pad(0.2));
       }
     } else {
@@ -441,7 +443,7 @@ fetch("/static/Tilfluktsrom.json")
       bounds.push([lat, lon]);
     });
 
-    if (bounds.length > 0) {
+    if (!hasUserCentered && bounds.length > 0) {
       map.fitBounds(bounds, { padding: [20, 20] });
     }
   })
