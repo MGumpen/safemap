@@ -11,6 +11,26 @@ let hasUserCentered = false;
 // Variable to store user location circle
 let userLocationCircle = null;
 
+const updateUserLocation = (lat, lng, accuracy, shouldCenter = false) => {
+  if (shouldCenter) {
+    map.setView([lat, lng], Math.max(map.getZoom(), DEFAULT_ZOOM));
+    hasUserCentered = true;
+  }
+
+  if (userLocationCircle) {
+    map.removeLayer(userLocationCircle);
+  }
+
+  userLocationCircle = L.circleMarker([lat, lng], {
+    radius: 8,
+    fillColor: '#4285F4',
+    color: '#ffffff',
+    weight: 2,
+    opacity: 1,
+    fillOpacity: 0.8
+  }).addTo(map).bindPopup('Din nåværende lokasjon');
+};
+
 // Try to get and watch user's current location
 if (navigator.geolocation) {
   navigator.geolocation.watchPosition(
@@ -22,25 +42,7 @@ if (navigator.geolocation) {
       console.log(`Din lokasjon: ${lat}, ${lng} (nøyaktighet: ${accuracy}m)`);
 
       // Center map on first location
-      if (!userLocationCircle) {
-        map.setView([lat, lng], DEFAULT_ZOOM);
-        hasUserCentered = true;
-      }
-
-      // Remove old circle if it exists
-      if (userLocationCircle) {
-        map.removeLayer(userLocationCircle);
-      }
-
-      // Add new circle at current position
-      userLocationCircle = L.circleMarker([lat, lng], {
-        radius: 8,
-        fillColor: '#4285F4',
-        color: '#ffffff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
-      }).addTo(map).bindPopup('Din nåværende lokasjon');
+      updateUserLocation(lat, lng, accuracy, !userLocationCircle);
     },
     (error) => {
       console.log(`Kunne ikke hente din lokasjon: ${error.message}. Bruker standard lokasjon.`);
@@ -105,6 +107,13 @@ const applyLayerVisibility = () => {
 const setLoadingState = (isLoading) => {
   document.body.classList.toggle('is-loading', isLoading);
 };
+
+const logoButton = document.getElementById('safemap-logo');
+if (logoButton) {
+  logoButton.addEventListener('click', () => {
+    window.location.reload();
+  });
+}
 
 const clamp = (minValue, maxValue, value) => Math.max(minValue, Math.min(maxValue, value));
 
@@ -246,6 +255,8 @@ initLayerToggle('layer-tilfluktsrom', layers.shelters);
 applyLayerVisibility();
 
 map.on('zoomend', updateMarkerSizes);
+
+// Beholder standard zoomkontroller
 
 // Custom icon for hospitals (red with S)
 const hospitalIcon = (size = 32) => L.divIcon({
