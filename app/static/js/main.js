@@ -107,16 +107,36 @@ const labelForRow = (row) => row.brannstasjon || row.navn || row.name || 'Branns
 
 const markers = L.featureGroup().addTo(map);
 
+const fireStationIcon = (size = 32) => L.divIcon({
+  className: 'fire-station-marker',
+  html: `
+    <div style="
+      width: ${size}px;
+      height: ${size}px;
+      border-radius: 50%;
+      background: #f77f00;
+      border: 3px solid #ffffff;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 18px;
+      font-family: Arial, sans-serif;
+    ">B</div>
+  `,
+  iconSize: [size, size],
+  iconAnchor: [size / 2, size / 2],
+  popupAnchor: [0, -size / 2]
+});
+
 const addStationToMap = (row) => {
   const coords = findLatLng(row);
   if (!coords || Number.isNaN(coords.lat) || Number.isNaN(coords.lng)) return;
-  L.circleMarker([coords.lat, coords.lng], {
-    radius: radiusForZoom(map.getZoom()),
-    color: '#d62828',
-    weight: 2,
-    fillColor: '#f77f00',
-    fillOpacity: 0.8
-  }).addTo(markers).bindPopup(labelForRow(row));
+  L.marker([coords.lat, coords.lng], { icon: fireStationIcon() })
+    .addTo(markers)
+    .bindPopup(labelForRow(row));
 };
 
 const updateMarkerSizes = () => {
@@ -190,7 +210,10 @@ async function loadHospitals() {
       const props = feature.properties;
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
-      const marker = L.marker([coords[1], coords[0]], { icon: hospitalIcon }).addTo(hospitalLayer);
+      const marker = L.marker([coords[1], coords[0]], {
+        icon: hospitalIcon,
+        zIndexOffset: 1000
+      }).addTo(hospitalLayer);
       
       // Create popup with hospital details
       const popupContent = `
@@ -241,7 +264,10 @@ async function loadLegevakter(hospitalCount) {
       const props = feature.properties;
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
-      const marker = L.marker([coords[1], coords[0]], { icon: legevaktIcon }).addTo(legevaktLayer);
+      const marker = L.marker([coords[1], coords[0]], {
+        icon: legevaktIcon,
+        zIndexOffset: 500
+      }).addTo(legevaktLayer);
       
       // Create popup with legevakt details
       const popupContent = `
