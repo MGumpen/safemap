@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from dotenv import load_dotenv
 import os
 import psycopg2
+import json
 
 app = FastAPI(title="Safemap API")
 
@@ -66,3 +67,66 @@ def get_brannstasjoner():
         return [dict(zip(columns, row)) for row in rows]
     except Exception as exc:
         return {"error": f"Failed to fetch brannstasjoner: {exc}"}
+    
+@app.get("/api/health-institutions")
+def get_health_institutions():
+    """Henter sykehus fra lokal JSON-fil"""
+    
+    json_file = BASE_DIR.parent / "src" / "sykehus.json"
+    
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return JSONResponse(content=data)
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Sykehus data ikke funnet"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Feil ved lasting av data: {str(e)}"}
+        )
+
+@app.get("/api/emergency-clinics")
+def get_emergency_clinics():
+    """Henter kommunale legevakter fra lokal JSON-fil"""
+    
+    json_file = BASE_DIR.parent / "src" / "legevakter.json"
+    
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return JSONResponse(content=data)
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Legevakt data ikke funnet"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Feil ved lasting av data: {str(e)}"}
+        )
+
+@app.get("/api/legevakter")
+def get_legevakter():
+    """Henter kommunale legevakter fra lokal JSON-fil"""
+    
+    json_file = BASE_DIR.parent / "src" / "legevakter.json"
+    
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return JSONResponse(content=data)
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Legevakt data ikke funnet"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Feil ved lasting av data: {str(e)}"}
+        )
