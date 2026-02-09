@@ -59,10 +59,56 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 18
 }).addTo(map);
 
-const radiusForZoom = (zoom) => {
-  const r = 2 + (zoom - 4) * 0.5;
-  return Math.max(2, Math.min(6, r));
+const layers = {
+  hospitals: L.layerGroup(),
+  legevakt: L.layerGroup(),
+  brannstasjoner: L.featureGroup(),
+  shelters: L.layerGroup()
 };
+
+const initLayerToggle = (checkboxId, layer) => {
+  const checkbox = document.getElementById(checkboxId);
+  if (!checkbox) return;
+  const applyState = () => {
+    applyLayerVisibility();
+  };
+  checkbox.addEventListener('change', applyState);
+  applyState();
+};
+
+const isLayerChecked = (checkboxId) => {
+  const checkbox = document.getElementById(checkboxId);
+  return Boolean(checkbox && checkbox.checked);
+};
+
+const applyLayerVisibility = () => {
+  const zoom = map.getZoom();
+  const showIcons = zoom >= 8;
+
+  const setLayer = (id, layer) => {
+    const shouldShow = showIcons && isLayerChecked(id);
+    if (shouldShow) {
+      map.addLayer(layer);
+    } else {
+      map.removeLayer(layer);
+    }
+  };
+
+  setLayer('layer-hospitals', layers.hospitals);
+  setLayer('layer-legevakt', layers.legevakt);
+  setLayer('layer-brannstasjoner', layers.brannstasjoner);
+  setLayer('layer-tilfluktsrom', layers.shelters);
+};
+
+const setLoadingState = (isLoading) => {
+  document.body.classList.toggle('is-loading', isLoading);
+};
+
+const clamp = (minValue, maxValue, value) => Math.max(minValue, Math.min(maxValue, value));
+
+const getMarkerSize = (zoom) => clamp(18, 32, 18 + (zoom - 6) * 2);
+
+const getShelterSize = (zoom) => clamp(12, 18, 12 + (zoom - 8) * 1.2);
 
 const apiUrl = '/api/brannstasjoner';
 
@@ -105,7 +151,7 @@ const findLatLng = (row) => {
 
 const labelForRow = (row) => row.brannstasjon || row.navn || row.name || 'Brannstasjon';
 
-const markers = L.featureGroup().addTo(map);
+const markers = layers.brannstasjoner;
 
 const fireStationIcon = (size = 32) => L.divIcon({
   className: 'fire-station-marker',
@@ -122,7 +168,7 @@ const fireStationIcon = (size = 32) => L.divIcon({
       justify-content: center;
       color: #ffffff;
       font-weight: 800;
-      font-size: 18px;
+      font-size: ${Math.max(12, Math.round(size * 0.55))}px;
       font-family: Arial, sans-serif;
     ">B</div>
   `,
@@ -134,16 +180,39 @@ const fireStationIcon = (size = 32) => L.divIcon({
 const addStationToMap = (row) => {
   const coords = findLatLng(row);
   if (!coords || Number.isNaN(coords.lat) || Number.isNaN(coords.lng)) return;
-  L.marker([coords.lat, coords.lng], { icon: fireStationIcon() })
+  L.marker([coords.lat, coords.lng], { icon: fireStationIcon(getMarkerSize(map.getZoom())) })
     .addTo(markers)
     .bindPopup(labelForRow(row));
 };
 
 const updateMarkerSizes = () => {
-  const radius = radiusForZoom(map.getZoom());
-  markers.eachLayer((layer) => {
-    if (layer.setRadius) {
-      layer.setRadius(radius);
+  const zoom = map.getZoom();
+  const size = getMarkerSize(zoom);
+  const shelterSize = getShelterSize(zoom);
+
+  applyLayerVisibility();
+
+  layers.brannstasjoner.eachLayer((layer) => {
+    if (layer.setIcon) {
+      layer.setIcon(fireStationIcon(size));
+    }
+  });
+
+  layers.hospitals.eachLayer((layer) => {
+    if (layer.setIcon) {
+      layer.setIcon(hospitalIcon(size));
+    }
+  });
+
+  layers.legevakt.eachLayer((layer) => {
+    if (layer.setIcon) {
+      layer.setIcon(legevaktIcon(size));
+    }
+  });
+
+  layers.shelters.eachLayer((layer) => {
+    if (layer.setIcon) {
+      layer.setIcon(shelterIcon(shelterSize));
     }
   });
 };
@@ -168,27 +237,57 @@ const loadStations = async () => {
 
 loadStations();
 
+initLayerToggle('layer-hospitals', layers.hospitals);
+initLayerToggle('layer-legevakt', layers.legevakt);
+initLayerToggle('layer-brannstasjoner', layers.brannstasjoner);
+initLayerToggle('layer-tilfluktsrom', layers.shelters);
+applyLayerVisibility();
+
 map.on('zoomend', updateMarkerSizes);
 
 // Custom icon for hospitals (red with S)
-const hospitalIcon = L.divIcon({
+const hospitalIcon = (size = 32) => L.divIcon({
   className: 'hospital-marker',
-  html: '<div style="background-color: #c0392b; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; font-family: Arial, sans-serif;">S</div>',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16]
+  html: `<div style="background-color: #c0392b; width: ${size}px; height: ${size}px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: ${Math.max(12, Math.round(size * 0.55))}px; font-family: Arial, sans-serif;">S</div>`,
+  iconSize: [size, size],
+  iconAnchor: [size / 2, size / 2]
 });
 
 // Custom icon for emergency clinics (legevakter)
-const legevaktIcon = L.divIcon({
+const legevaktIcon = (size = 32) => L.divIcon({
   className: 'legevakt-marker',
-  html: '<div style="background-color: #27ae60; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; font-family: Arial, sans-serif;">L</div>',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16]
+  html: `<div style="background-color: #27ae60; width: ${size}px; height: ${size}px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: ${Math.max(12, Math.round(size * 0.55))}px; font-family: Arial, sans-serif;">L</div>`,
+  iconSize: [size, size],
+  iconAnchor: [size / 2, size / 2]
+});
+
+const shelterIcon = (size = 18) => L.divIcon({
+  className: "shelter-icon",
+  html: `
+    <div style="
+      width: ${size}px;
+      height: ${size}px;
+      background: #facc15;
+      border: 2px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: ${Math.max(9, Math.round(size * 0.6))}px;
+      color: #000;
+    ">T</div>
+  `,
+  iconSize: [size, size],
+  iconAnchor: [size / 2, size / 2],
+  popupAnchor: [0, -size / 2],
 });
 
 // Load and display hospitals
 async function loadHospitals() {
   const loadingIndicator = document.getElementById('loading');
+  if (loadingIndicator) {
+    setLoadingState(true);
+  }
   
   try {
     const response = await fetch('/api/health-institutions');
@@ -201,8 +300,7 @@ async function loadHospitals() {
       loadingIndicator.textContent = `Laster legevakter...`;
     }
     
-    // Create layer group for hospitals
-    const hospitalLayer = L.layerGroup().addTo(map);
+    const hospitalLayer = layers.hospitals;
     
     // Add each hospital to the map
     data.features.forEach(feature => {
@@ -211,7 +309,7 @@ async function loadHospitals() {
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
       const marker = L.marker([coords[1], coords[0]], {
-        icon: hospitalIcon,
+        icon: hospitalIcon(getMarkerSize(map.getZoom())),
         zIndexOffset: 1000
       }).addTo(hospitalLayer);
       
@@ -240,6 +338,10 @@ async function loadHospitals() {
       loadingIndicator.textContent = 'Feil ved lasting av data';
       loadingIndicator.style.backgroundColor = '#e74c3c';
       loadingIndicator.style.color = 'white';
+      setTimeout(() => {
+        loadingIndicator.style.display = 'none';
+        setLoadingState(false);
+      }, 3000);
     }
   }
 }
@@ -255,8 +357,7 @@ async function loadLegevakter(hospitalCount) {
     const legevaktCount = data.features.length;
     console.log(`Lastet ${legevaktCount} legevakter`);
     
-    // Create layer group for legevakter
-    const legevaktLayer = L.layerGroup().addTo(map);
+    const legevaktLayer = layers.legevakt;
     
     // Add each legevakt to the map
     data.features.forEach(feature => {
@@ -265,7 +366,7 @@ async function loadLegevakter(hospitalCount) {
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
       const marker = L.marker([coords[1], coords[0]], {
-        icon: legevaktIcon,
+        icon: legevaktIcon(getMarkerSize(map.getZoom())),
         zIndexOffset: 500
       }).addTo(legevaktLayer);
       
@@ -291,6 +392,7 @@ async function loadLegevakter(hospitalCount) {
       loadingIndicator.textContent = `${hospitalCount} sykehus og ${legevaktCount} legevakter`;
       setTimeout(() => {
         loadingIndicator.style.display = 'none';
+        setLoadingState(false);
       }, 2000);
     }
     
@@ -300,6 +402,7 @@ async function loadLegevakter(hospitalCount) {
       loadingIndicator.textContent = `${hospitalCount} sykehus (legevakter feilet)`;
       setTimeout(() => {
         loadingIndicator.style.display = 'none';
+        setLoadingState(false);
       }, 3000);
     }
   }
@@ -331,29 +434,8 @@ fetch("/static/Tilfluktsrom.json")
         Plasser: ${props.plasser ?? "Ukjent"}
       `;
 
-      const shelterIcon = L.divIcon({
-        className: "shelter-icon",
-        html: `
-          <div style="
-            width: 18px;
-            height: 18px;
-            background: #facc15;
-            border: 2px solid #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 12px;
-            color: #000;
-          ">T</div>
-        `,
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
-        popupAnchor: [0, -9],
-      });
-
-      L.marker([lat, lon], { icon: shelterIcon })
-        .addTo(map)
+      L.marker([lat, lon], { icon: shelterIcon(getShelterSize(map.getZoom())) })
+        .addTo(layers.shelters)
         .bindPopup(popup);
 
       bounds.push([lat, lon]);
