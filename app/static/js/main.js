@@ -314,6 +314,51 @@ const routeToNearest = async (type) => {
   }
 };
 
+const buildRoutePopup = (title, meta) => {
+  const heading = title
+    ? `<strong>${title}</strong><br/><span style="color:#6b7280;">${meta || ''}</span>`
+    : '<strong>Valgt punkt</strong>';
+  return `
+    <div>
+      ${heading}
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+        <button class="route-option" data-route="hospital">Rute til nærmeste sykehus</button>
+        <button class="route-option" data-route="legevakt">Rute til nærmeste legevakt</button>
+        <button class="route-option" data-route="shelter">Rute til nærmeste tilfluktsrom</button>
+      </div>
+    </div>
+  `;
+};
+
+const reverseGeocode = async (lat, lon) => {
+  try {
+    const url = `https://ws.geonorge.no/adresser/v1/punktsok?lat=${lat}&lon=${lon}&radius=50&treffPerSide=1`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return (data.adresser && data.adresser[0]) || null;
+  } catch (error) {
+    return null;
+  }
+};
+
+map.on('click', async (event) => {
+  const { lat, lng } = event.latlng;
+  if (addressMarker) addressLayer.removeLayer(addressMarker);
+  addressMarker = L.marker([lat, lng]).addTo(addressLayer);
+  fromSelection = { coords: { lat, lon: lng }, label: { title: '', meta: '' } };
+
+  const address = await reverseGeocode(lat, lng);
+  if (address) {
+    const label = formatAddressLabel(address);
+    fromSelection.label = label;
+    if (addressInput) addressInput.value = label.title;
+    addressMarker.bindPopup(buildRoutePopup(label.title, label.meta)).openPopup();
+  } else {
+    addressMarker.bindPopup(buildRoutePopup('', '')).openPopup();
+  }
+});
+
 const mapContainer = map.getContainer();
 mapContainer.addEventListener('click', (event) => {
   const button = event.target.closest('.route-option');
