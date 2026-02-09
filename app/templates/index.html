@@ -14,15 +14,19 @@
     <header class="app-header">
       <div class="app-header__title" id="safemap-logo" role="button" aria-label="Finn min posisjon">Safemap</div>
       <div class="app-header__spacer"></div>
-      <input
-        class="app-header__search"
-        type="text"
-        placeholder="Søk adresse"
-        aria-label="Søk adresse"
-      />
+      <div class="app-header__search-wrapper">
+        <input
+          class="app-header__search"
+          id="address-search"
+          type="text"
+          placeholder="Søk adresse"
+          aria-label="Søk adresse"
+          autocomplete="off"
+        />
+        <div class="address-suggestions" id="address-suggestions" role="listbox" aria-label="Adresseforslag"></div>
+      </div>
       <button class="app-header__menu" aria-label="Åpne meny">☰</button>
     </header>
-    <div id="loading" class="loading-indicator">Laster data...</div>
     <aside id="layer-controls" class="layer-controls">
       <div class="layer-controls__title">Filter</div>
       <table class="layer-controls__table">

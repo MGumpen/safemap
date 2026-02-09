@@ -54,14 +54,83 @@ body {
   flex: 1;
 }
 
-.app-header__search {
+.app-header__search-wrapper {
+  position: relative;
   width: min(420px, 50vw);
+}
+
+@media (max-width: 900px) {
+  .app-header__search-wrapper {
+    width: min(260px, 45vw);
+  }
+}
+
+.app-header__search {
+  width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.15);
   background: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   outline: none;
+}
+
+.address-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: none;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1300;
+}
+
+.address-suggestions.is-visible {
+  display: block;
+}
+
+.address-suggestions__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.address-suggestions__item:hover,
+.address-suggestions__item.is-active {
+  background: #f3f4f6;
+}
+
+.route-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.route-option:hover {
+  background: #f3f4f6;
+}
+
+.address-suggestions__meta {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
 }
 
 .app-header__search:focus {
@@ -82,6 +151,7 @@ body {
 .app-header__menu:hover {
   background: rgba(255, 255, 255, 1);
 }
+
 
 .layer-controls {
   position: fixed;

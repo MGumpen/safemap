@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 import os
 import psycopg2
 import json
+import math
+from typing import List, Dict, Any
+from pyproj import Transformer
 
 app = FastAPI(title="Safemap API")
 
@@ -55,6 +58,65 @@ def _get_db_connection():
         port=PORT,
         dbname=DBNAME,
     )
+
+
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    r = 6371.0
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
+    with open(file_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+    points = []
+    for feature in data.get("features", []):
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") != "Point":
+            continue
+        coords = geometry.get("coordinates") or []
+        if len(coords) < 2:
+            continue
+        props = feature.get("properties") or {}
+        points.append(
+            {
+                "lat": float(coords[1]),
+                "lon": float(coords[0]),
+                "label": props.get("navn") or props.get("adresse") or "Punkt",
+            }
+        )
+    return points
+
+
+def _load_shelter_points() -> List[Dict[str, Any]]:
+    shelter_file = BASE_DIR / "static" / "Tilfluktsrom.json"
+    if not shelter_file.exists():
+        return []
+    with open(shelter_file, "r", encoding="utf-8") as file:
+        data = json.load(file)
+    transformer = Transformer.from_crs(25833, 4326, always_xy=True)
+    points = []
+    for feature in data.get("features", []):
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") != "Point":
+            continue
+        coords = geometry.get("coordinates") or []
+        if len(coords) < 2:
+            continue
+        lon, lat = transformer.transform(coords[0], coords[1])
+        props = feature.get("properties") or {}
+        points.append(
+            {
+                "lat": float(lat),
+                "lon": float(lon),
+                "label": props.get("adresse") or "Tilfluktsrom",
+            }
+        )
+    return points
 
 
 @app.get("/api/brannstasjoner")
@@ -174,3 +236,22 @@ def get_legevakter():
             status_code=500,
             content={"error": f"Feil ved lasting av data: {str(e)}"}
         )
+
+
+@app.get("/api/nearest")
+def get_nearest_point(type: str, lat: float, lon: float):
+    if type not in {"hospital", "legevakt", "shelter"}:
+        return {"error": "Ugyldig type. Bruk hospital, legevakt eller shelter."}
+
+    if type == "hospital":
+        points = _load_geojson_points(_find_data_file("sykehus.json"))
+    elif type == "legevakt":
+        points = _load_geojson_points(_find_data_file("legevakter.json"))
+    else:
+        points = _load_shelter_points()
+
+    if not points:
+        return {"error": "Ingen punkter tilgjengelig."}
+
+    closest = min(points, key=lambda p: _haversine(lat, lon, p["lat"], p["lon"]))
+    return closest
