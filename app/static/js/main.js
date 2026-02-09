@@ -115,6 +115,159 @@ if (logoButton) {
   });
 }
 
+const addressInput = document.getElementById('address-search');
+const addressSuggestions = document.getElementById('address-suggestions');
+const addressLayer = L.layerGroup().addTo(map);
+let addressMarker = null;
+let activeSuggestionIndex = -1;
+let activeSuggestions = [];
+let addressSearchTimer = null;
+let activeController = null;
+
+const clearSuggestions = () => {
+  if (!addressSuggestions) return;
+  addressSuggestions.innerHTML = '';
+  addressSuggestions.classList.remove('is-visible');
+  activeSuggestions = [];
+  activeSuggestionIndex = -1;
+};
+
+const formatAddressLabel = (item) => {
+  const navn = item.adressenavn || item.adresse || item.vegadresse || '';
+  const nummer = item.nummer || '';
+  const bokstav = item.bokstav || '';
+  const postnummer = item.postnummer || '';
+  const poststed = item.poststed || '';
+  const kommunenavn = item.kommunenavn || item.kommune || '';
+  const hoved = `${navn} ${nummer}${bokstav}`.trim();
+  const meta = `${postnummer} ${poststed}`.trim();
+  const kommune = kommunenavn ? ` • ${kommunenavn}` : '';
+  return {
+    title: hoved || item.tekst || item.adresse || 'Adresse',
+    meta: `${meta}${kommune}`.trim()
+  };
+};
+
+const extractCoordinates = (item) => {
+  const point = item.representasjonspunkt || item.punkt || item.position || null;
+  if (point) {
+    const lat = point.lat ?? point.latitude ?? point.y;
+    const lon = point.lon ?? point.lng ?? point.longitude ?? point.x;
+    if (lat != null && lon != null) {
+      return { lat: Number(lat), lon: Number(lon) };
+    }
+  }
+  if (item.lat != null && item.lon != null) {
+    return { lat: Number(item.lat), lon: Number(item.lon) };
+  }
+  if (item.latitude != null && item.longitude != null) {
+    return { lat: Number(item.latitude), lon: Number(item.longitude) };
+  }
+  return null;
+};
+
+const setActiveSuggestion = (index) => {
+  if (!addressSuggestions) return;
+  const items = Array.from(addressSuggestions.querySelectorAll('.address-suggestions__item'));
+  items.forEach((item, idx) => {
+    item.classList.toggle('is-active', idx === index);
+  });
+  activeSuggestionIndex = index;
+};
+
+const applyAddressSelection = (item) => {
+  const coords = extractCoordinates(item);
+  if (!coords) return;
+  const label = formatAddressLabel(item);
+  if (addressInput) {
+    addressInput.value = label.title;
+  }
+  clearSuggestions();
+  if (addressMarker) {
+    addressLayer.removeLayer(addressMarker);
+  }
+  addressMarker = L.marker([coords.lat, coords.lon]).addTo(addressLayer);
+  addressMarker.bindPopup(`${label.title}<br/><span style="color:#6b7280;">${label.meta}</span>`).openPopup();
+  map.setView([coords.lat, coords.lon], Math.max(map.getZoom(), 14));
+};
+
+const renderSuggestions = (items) => {
+  if (!addressSuggestions) return;
+  addressSuggestions.innerHTML = '';
+  items.forEach((item, index) => {
+    const label = formatAddressLabel(item);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'address-suggestions__item';
+    button.innerHTML = `${label.title}<span class="address-suggestions__meta">${label.meta}</span>`;
+    button.addEventListener('click', () => applyAddressSelection(item));
+    addressSuggestions.appendChild(button);
+  });
+  addressSuggestions.classList.toggle('is-visible', items.length > 0);
+  activeSuggestions = items;
+  activeSuggestionIndex = -1;
+};
+
+const fetchAddressSuggestions = async (query) => {
+  if (!query || query.length < 3) {
+    clearSuggestions();
+    return;
+  }
+  if (activeController) {
+    activeController.abort();
+  }
+  activeController = new AbortController();
+  try {
+    const url = `https://ws.geonorge.no/adresser/v1/sok?sok=${encodeURIComponent(query)}&treffPerSide=6&fuzzy=true&utkoordsys=4258`;
+    const response = await fetch(url, { signal: activeController.signal });
+    if (!response.ok) throw new Error('Adresseoppslag feilet');
+    const data = await response.json();
+    const results = data.adresser || data.features || [];
+    renderSuggestions(results);
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      clearSuggestions();
+    }
+  }
+};
+
+if (addressInput) {
+  addressInput.addEventListener('input', (event) => {
+    const value = event.target.value.trim();
+    clearTimeout(addressSearchTimer);
+    addressSearchTimer = setTimeout(() => fetchAddressSuggestions(value), 300);
+  });
+
+  addressInput.addEventListener('keydown', (event) => {
+    if (!activeSuggestions.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const next = Math.min(activeSuggestionIndex + 1, activeSuggestions.length - 1);
+      setActiveSuggestion(next);
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const prev = Math.max(activeSuggestionIndex - 1, 0);
+      setActiveSuggestion(prev);
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const item = activeSuggestions[activeSuggestionIndex];
+      if (item) applyAddressSelection(item);
+    }
+    if (event.key === 'Escape') {
+      clearSuggestions();
+    }
+  });
+}
+
+document.addEventListener('click', (event) => {
+  if (!addressSuggestions || !addressInput) return;
+  const target = event.target;
+  if (target === addressInput || addressSuggestions.contains(target)) return;
+  clearSuggestions();
+});
+
 const clamp = (minValue, maxValue, value) => Math.max(minValue, Math.min(maxValue, value));
 
 const getMarkerSize = (zoom) => clamp(18, 32, 18 + (zoom - 6) * 2);
