@@ -24,6 +24,7 @@ body {
   top: calc(var(--header-height) + 8px);
 }
 
+
 .app-header {
   position: fixed;
   top: 0;
@@ -43,8 +44,10 @@ body {
 
 .app-header__title {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 22px;
   color: #111827;
+  cursor: pointer;
+  user-select: none;
 }
 
 .app-header__spacer {
