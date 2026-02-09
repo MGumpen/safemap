@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-// Initialize map centered on Norway
-const map = L.map('map').setView([65.0, 13.0], 5);
-=======
 console.log("Safemap landing page loaded");
 
 // Default fallback location (UiA)
@@ -21,19 +17,19 @@ if (navigator.geolocation) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
       const accuracy = position.coords.accuracy;
-      
+
       console.log(`Din lokasjon: ${lat}, ${lng} (nøyaktighet: ${accuracy}m)`);
-      
+
       // Center map on first location
       if (!userLocationCircle) {
         map.setView([lat, lng], DEFAULT_ZOOM);
       }
-      
+
       // Remove old circle if it exists
       if (userLocationCircle) {
         map.removeLayer(userLocationCircle);
       }
-      
+
       // Add new circle at current position
       userLocationCircle = L.circleMarker([lat, lng], {
         radius: 8,
@@ -56,7 +52,6 @@ if (navigator.geolocation) {
 } else {
   console.log("Nettleseren støtter ikke geolocation");
 }
->>>>>>> def34d679e5c8926358a75bcd94fd2dc5edb93f5
 
 // Add OpenStreetMap tiles
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -64,7 +59,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 18
 }).addTo(map);
 
-<<<<<<< HEAD
 const radiusForZoom = (zoom) => {
   const r = 2 + (zoom - 4) * 0.5;
   return Math.max(2, Math.min(6, r));
@@ -155,19 +149,11 @@ const loadStations = async () => {
 loadStations();
 
 map.on('zoomend', updateMarkerSizes);
-=======
+
 // Custom icon for hospitals (red with S)
 const hospitalIcon = L.divIcon({
   className: 'hospital-marker',
   html: '<div style="background-color: #c0392b; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; font-family: Arial, sans-serif;">S</div>',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16]
-});
-
-// Custom icon for emergency clinics (green with L)
-const emergencyIcon = L.divIcon({
-  className: 'emergency-marker',
-  html: '<div style="background-color: #27ae60; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; font-family: Arial, sans-serif;">L</div>',
   iconSize: [32, 32],
   iconAnchor: [16, 16]
 });
@@ -354,4 +340,3 @@ fetch("/static/Tilfluktsrom.json")
   .catch((error) => {
     console.error("Klarte ikke a laste tilfluktsrom-data:", error);
   });
->>>>>>> def34d679e5c8926358a75bcd94fd2dc5edb93f5
