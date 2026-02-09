@@ -16,6 +16,29 @@
       
     </header>
     <div id="loading" class="loading-indicator">Laster data...</div>
+    <aside id="layer-controls" class="layer-controls">
+      <div class="layer-controls__title">Datalag</div>
+      <table class="layer-controls__table">
+        <tbody>
+          <tr>
+            <td>Sykehus</td>
+            <td><input id="layer-hospitals" type="checkbox" checked /></td>
+          </tr>
+          <tr>
+            <td>Legevakt</td>
+            <td><input id="layer-legevakt" type="checkbox" checked /></td>
+          </tr>
+          <tr>
+            <td>Brannstasjoner</td>
+            <td><input id="layer-brannstasjoner" type="checkbox" checked /></td>
+          </tr>
+          <tr>
+            <td>Tilfluktsrom</td>
+            <td><input id="layer-tilfluktsrom" type="checkbox" checked /></td>
+          </tr>
+        </tbody>
+      </table>
+    </aside>
     <div id="map"></div>
     <script src="/static/js/main.js?v=1"></script>
   </body>

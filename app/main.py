@@ -58,18 +58,50 @@ def _get_db_connection():
 
 
 @app.get("/api/brannstasjoner")
+@app.get("/api/Brannstasjoner")
 def get_brannstasjoner():
     try:
         connection = _get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
             """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE lower(table_name) = 'brannstasjoner'
+              AND table_schema = 'public'
+            """
+        )
+        table_row = cursor.fetchone()
+        if not table_row:
+            raise ValueError("Fant ikke brannstasjoner-tabell i databasen.")
+        table_name = table_row[0]
+        cursor.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = %s
+              AND table_schema = 'public'
+            """
+            ,
+            (table_name,)
+        )
+        column_rows = [row[0] for row in cursor.fetchall()]
+        column_map = {name.lower(): name for name in column_rows}
+        geom_column = None
+        for candidate in ("shape", "geom", "geometry"):
+            if candidate in column_map:
+                geom_column = column_map[candidate]
+                break
+        if not geom_column:
+            raise ValueError("Fant ikke geometri-kolonne i brannstasjoner-tabellen.")
+        cursor.execute(
+            f"""
             SELECT
                 *,
-                ST_AsGeoJSON(ST_Transform("SHAPE", 4326)) AS shape,
-                ST_X(ST_Transform("SHAPE", 4326)) AS lon,
-                ST_Y(ST_Transform("SHAPE", 4326)) AS lat
-            FROM brannstasjoner_brannstasjon;
+                ST_AsGeoJSON(ST_Transform("{geom_column}", 4326)) AS shape,
+                ST_X(ST_Transform("{geom_column}", 4326)) AS lon,
+                ST_Y(ST_Transform("{geom_column}", 4326)) AS lat
+            FROM "{table_name}";
             """
         )
         rows = cursor.fetchall()
