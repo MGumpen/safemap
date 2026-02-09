@@ -64,6 +64,19 @@ mypy .
 pytest
 ```
 
+## Docker
+
+Kjør appen likt hos alle med Docker:
+
+1. Kopiér [\.env.example](.env.example) til `.env` og fyll inn riktige databaseverdier.
+2. Start:
+
+```bash
+docker compose up --build
+```
+
+Appen blir tilgjengelig på `http://localhost:8000`.
+
 ## Continuous Integration
 
 GitHub Actions kjører automatisk ved push til `main` eller `dev` branch:

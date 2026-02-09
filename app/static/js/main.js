@@ -17,19 +17,19 @@ if (navigator.geolocation) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
       const accuracy = position.coords.accuracy;
-      
+
       console.log(`Din lokasjon: ${lat}, ${lng} (nøyaktighet: ${accuracy}m)`);
-      
+
       // Center map on first location
       if (!userLocationCircle) {
         map.setView([lat, lng], DEFAULT_ZOOM);
       }
-      
+
       // Remove old circle if it exists
       if (userLocationCircle) {
         map.removeLayer(userLocationCircle);
       }
-      
+
       // Add new circle at current position
       userLocationCircle = L.circleMarker([lat, lng], {
         radius: 8,
@@ -59,18 +59,121 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 18
 }).addTo(map);
 
+const radiusForZoom = (zoom) => {
+  const r = 2 + (zoom - 4) * 0.5;
+  return Math.max(2, Math.min(6, r));
+};
+
+const apiUrl = '/api/brannstasjoner';
+
+const parseWktPoint = (wkt) => {
+  if (!wkt || typeof wkt !== 'string') return null;
+  const match = wkt.match(/POINT\s*\(\s*([\d.-]+)\s+([\d.-]+)\s*\)/i);
+  if (!match) return null;
+  return { lng: Number(match[1]), lat: Number(match[2]) };
+};
+
+const findLatLng = (row) => {
+  const latKeys = ['lat', 'latitude', 'y', 'latitud'];
+  const lngKeys = ['lng', 'lon', 'longitude', 'x', 'longitud'];
+  for (const latKey of latKeys) {
+    for (const lngKey of lngKeys) {
+      if (row[latKey] != null && row[lngKey] != null) {
+        return { lat: Number(row[latKey]), lng: Number(row[lngKey]) };
+      }
+    }
+  }
+
+  const geo = row.geometry || row.geom || row.shape;
+  if (geo) {
+    if (typeof geo === 'string') {
+      const point = parseWktPoint(geo);
+      if (point) return point;
+      try {
+        const parsed = JSON.parse(geo);
+        if (parsed && parsed.type && parsed.coordinates) {
+          return { lng: parsed.coordinates[0], lat: parsed.coordinates[1] };
+        }
+      } catch (_) {}
+    } else if (geo.type && geo.coordinates) {
+      return { lng: geo.coordinates[0], lat: geo.coordinates[1] };
+    }
+  }
+
+  return null;
+};
+
+const labelForRow = (row) => row.brannstasjon || row.navn || row.name || 'Brannstasjon';
+
+const markers = L.featureGroup().addTo(map);
+
+const fireStationIcon = (size = 32) => L.divIcon({
+  className: 'fire-station-marker',
+  html: `
+    <div style="
+      width: ${size}px;
+      height: ${size}px;
+      border-radius: 50%;
+      background: #f77f00;
+      border: 3px solid #ffffff;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 18px;
+      font-family: Arial, sans-serif;
+    ">B</div>
+  `,
+  iconSize: [size, size],
+  iconAnchor: [size / 2, size / 2],
+  popupAnchor: [0, -size / 2]
+});
+
+const addStationToMap = (row) => {
+  const coords = findLatLng(row);
+  if (!coords || Number.isNaN(coords.lat) || Number.isNaN(coords.lng)) return;
+  L.marker([coords.lat, coords.lng], { icon: fireStationIcon() })
+    .addTo(markers)
+    .bindPopup(labelForRow(row));
+};
+
+const updateMarkerSizes = () => {
+  const radius = radiusForZoom(map.getZoom());
+  markers.eachLayer((layer) => {
+    if (layer.setRadius) {
+      layer.setRadius(radius);
+    }
+  });
+};
+
+const loadStations = async () => {
+  try {
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error(`API-feil: ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      data.forEach(addStationToMap);
+      if (markers.getLayers().length > 0) {
+        map.fitBounds(markers.getBounds().pad(0.2));
+      }
+    } else {
+      console.error('Uventet svar fra API:', data);
+    }
+  } catch (err) {
+    console.error('Klarte ikke hente brannstasjoner:', err);
+  }
+};
+
+loadStations();
+
+map.on('zoomend', updateMarkerSizes);
+
 // Custom icon for hospitals (red with S)
 const hospitalIcon = L.divIcon({
   className: 'hospital-marker',
   html: '<div style="background-color: #c0392b; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; font-family: Arial, sans-serif;">S</div>',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16]
-});
-
-// Custom icon for emergency clinics (green with L)
-const emergencyIcon = L.divIcon({
-  className: 'emergency-marker',
-  html: '<div style="background-color: #27ae60; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; font-family: Arial, sans-serif;">L</div>',
   iconSize: [32, 32],
   iconAnchor: [16, 16]
 });
@@ -107,7 +210,10 @@ async function loadHospitals() {
       const props = feature.properties;
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
-      const marker = L.marker([coords[1], coords[0]], { icon: hospitalIcon }).addTo(hospitalLayer);
+      const marker = L.marker([coords[1], coords[0]], {
+        icon: hospitalIcon,
+        zIndexOffset: 1000
+      }).addTo(hospitalLayer);
       
       // Create popup with hospital details
       const popupContent = `
@@ -158,7 +264,10 @@ async function loadLegevakter(hospitalCount) {
       const props = feature.properties;
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
-      const marker = L.marker([coords[1], coords[0]], { icon: legevaktIcon }).addTo(legevaktLayer);
+      const marker = L.marker([coords[1], coords[0]], {
+        icon: legevaktIcon,
+        zIndexOffset: 500
+      }).addTo(legevaktLayer);
       
       // Create popup with legevakt details
       const popupContent = `
