@@ -59,6 +59,12 @@ body {
   width: min(420px, 50vw);
 }
 
+@media (max-width: 900px) {
+  .app-header__search-wrapper {
+    width: min(260px, 45vw);
+  }
+}
+
 .app-header__search {
   width: 100%;
   padding: 10px 12px;
@@ -104,6 +110,22 @@ body {
   background: #f3f4f6;
 }
 
+.route-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.route-option:hover {
+  background: #f3f4f6;
+}
+
 .address-suggestions__meta {
   display: block;
   font-size: 12px;
@@ -129,6 +151,7 @@ body {
 .app-header__menu:hover {
   background: rgba(255, 255, 255, 1);
 }
+
 
 .layer-controls {
   position: fixed;
