@@ -11,9 +11,16 @@
   </head>
 
   <body>
-    <header>
-      <h1>Safemap</h1>
-      
+    <header class="app-header">
+      <div class="app-header__title">Safemap</div>
+      <div class="app-header__spacer"></div>
+      <input
+        class="app-header__search"
+        type="text"
+        placeholder="Søk adresse"
+        aria-label="Søk adresse"
+      />
+      <button class="app-header__menu" aria-label="Åpne meny">☰</button>
     </header>
     <div id="loading" class="loading-indicator">Laster data...</div>
     <aside id="layer-controls" class="layer-controls">
