@@ -10,8 +10,12 @@ let hasUserCentered = false;
 
 // Variable to store user location circle
 let userLocationCircle = null;
+let currentUserPosition = null;
 
 const updateUserLocation = (lat, lng, accuracy, shouldCenter = false) => {
+  // Update current user position for distance filtering
+  currentUserPosition = { lat, lon: lng };
+  
   if (shouldCenter) {
     map.setView([lat, lng], Math.max(map.getZoom(), DEFAULT_ZOOM));
     hasUserCentered = true;
@@ -680,41 +684,209 @@ async function loadLegevakter(hospitalCount) {
 // Load hospitals when page loads
 loadHospitals();
 
-// Load shelter data (GeoJSON in EPSG:25833) and plot on the map
-proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
-
-fetch("/static/Tilfluktsrom.json")
-  .then((response) => response.json())
-  .then((geojson) => {
+// Load shelter data from database API
+async function loadShelters() {
+  try {
+    console.log('Laster tilfluktsrom fra database...');
+    const response = await fetch('/api/tilfluktsrom');
+    
+    if (!response.ok) {
+      throw new Error(`API feilet: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    const shelterCount = data.features?.length || 0;
+    console.log(`Lastet ${shelterCount} tilfluktsrom fra database`);
+    
     const bounds = [];
-
-    geojson.features.forEach((feature) => {
+    
+    data.features.forEach((feature) => {
       if (!feature.geometry || feature.geometry.type !== "Point") {
         return;
       }
-
-      const [x, y] = feature.geometry.coordinates;
-      const [lon, lat] = proj4("EPSG:25833", "EPSG:4326", [x, y]);
-
+      
+      // GeoJSON format: [lon, lat]
+      const [lon, lat] = feature.geometry.coordinates;
       const props = feature.properties || {};
+      
       const popup = `
-        <strong>Tilfluktsrom</strong><br />
-        Adresse: ${props.adresse || "Ukjent"}<br />
-        Plasser: ${props.plasser ?? "Ukjent"}
+        <div style="min-width: 200px;">
+          <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: bold; color: #000;">
+            Tilfluktsrom
+          </h3>
+          <p style="margin: 5px 0; font-size: 12px;"><strong>Adresse:</strong> ${props.adresse || "Ukjent"}</p>
+          ${props.plasser ? `<p style="margin: 5px 0; font-size: 12px;"><strong>Plasser:</strong> ${props.plasser}</p>` : ''}
+        </div>
       `;
-
+      
       L.marker([lat, lon], { icon: shelterIcon(getShelterSize(map.getZoom())) })
         .addTo(layers.shelters)
         .bindPopup(popup);
-
-
+      
       bounds.push([lat, lon]);
     });
-
+    
+    console.log(`Viser ${shelterCount} tilfluktsrom på kartet`);
+    
     if (!hasUserCentered && bounds.length > 0) {
       map.fitBounds(bounds, { padding: [20, 20] });
     }
-  })
-  .catch((error) => {
-    console.error("Klarte ikke a laste tilfluktsrom-data:", error);
+    
+  } catch (error) {
+    console.error('Feil ved lasting av tilfluktsrom:', error);
+  }
+}
+
+// Load shelters from database
+loadShelters();
+
+// ===== SPATIAL FILTERING FUNCTIONALITY =====
+let distanceFilterCircle = null;
+let distanceFilterActive = false;
+
+// Update distance value display
+const distanceSlider = document.getElementById('distance-radius');
+const distanceValue = document.getElementById('distance-value');
+const applyFilterButton = document.getElementById('apply-distance-filter');
+const clearFilterButton = document.getElementById('clear-distance-filter');
+const filterResults = document.getElementById('distance-filter-results');
+
+if (distanceSlider && distanceValue) {
+  distanceSlider.addEventListener('input', (e) => {
+    distanceValue.textContent = e.target.value;
   });
+}
+
+// Apply distance filter
+if (applyFilterButton) {
+  applyFilterButton.addEventListener('click', async () => {
+    if (!currentUserPosition) {
+      alert('Kunne ikke finne din posisjon. Vennligst aktiver stedstjenester.');
+      return;
+    }
+
+    console.log('Starter avstandsfilter med posisjon:', currentUserPosition);
+    const radius = parseFloat(distanceSlider.value);
+    applyFilterButton.disabled = true;
+    applyFilterButton.textContent = 'Søker...';
+
+    try {
+      const response = await fetch(
+        `/api/spatial-filter?lat=${currentUserPosition.lat}&lon=${currentUserPosition.lon}&radius_km=${radius}`
+      );
+      
+      if (!response.ok) throw new Error('Feil ved romlig søk');
+      
+      const data = await response.json();
+      console.log('Mottok data:', data);
+      
+      // Show radius circle on map
+      if (distanceFilterCircle) {
+        map.removeLayer(distanceFilterCircle);
+      }
+      
+      console.log('Tegner sirkel på posisjon:', [currentUserPosition.lat, currentUserPosition.lon], 'med radius:', radius * 1000, 'm');
+      
+      distanceFilterCircle = L.circle(
+        [currentUserPosition.lat, currentUserPosition.lon],
+        {
+          radius: radius * 1000, // Convert km to meters
+          color: '#ef4444',
+          fillColor: '#ef4444',
+          fillOpacity: 0.15,
+          weight: 3,
+          dashArray: '10, 10',
+          opacity: 0.8
+        }
+      ).addTo(map);
+      
+      console.log('Sirkel lagt til kartet');
+
+      // Zoom to circle bounds
+      map.fitBounds(distanceFilterCircle.getBounds().pad(0.1));
+
+      // Display results
+      displayFilterResults(data);
+      
+      // Show clear button
+      clearFilterButton.style.display = 'block';
+      distanceFilterActive = true;
+      
+    } catch (error) {
+      console.error('Feil ved avstandsfiltrering:', error);
+      alert('Kunne ikke utføre søket. Vennligst prøv igjen.');
+    } finally {
+      applyFilterButton.disabled = false;
+      applyFilterButton.textContent = 'Søk nær min posisjon';
+    }
+  });
+}
+
+// Clear distance filter
+if (clearFilterButton) {
+  clearFilterButton.addEventListener('click', () => {
+    if (distanceFilterCircle) {
+      map.removeLayer(distanceFilterCircle);
+      distanceFilterCircle = null;
+    }
+    
+    filterResults.classList.remove('visible');
+    filterResults.innerHTML = '';
+    clearFilterButton.style.display = 'none';
+    distanceFilterActive = false;
+    
+    // Reset map view
+    if (currentUserPosition) {
+      map.setView([currentUserPosition.lat, currentUserPosition.lon], DEFAULT_ZOOM);
+    }
+  });
+}
+
+// Display filter results
+function displayFilterResults(data) {
+  if (!filterResults) return;
+  
+  const results = data.results;
+  const total = data.total_count;
+  
+  let html = `<div style="font-weight: 700; margin-bottom: 8px;">
+    Funnet ${total} objekt${total !== 1 ? 'er' : ''} innenfor ${data.radius_km} km
+  </div>`;
+  
+  const categories = [
+    { key: 'hospitals', label: 'Sykehus', icon: 'S', color: '#c0392b' },
+    { key: 'legevakter', label: 'Legevakter', icon: 'L', color: '#27ae60' },
+    { key: 'brannstasjoner', label: 'Brannstasjoner', icon: 'B', color: '#f77f00' },
+    { key: 'shelters', label: 'Tilfluktsrom', icon: 'T', color: '#facc15' }
+  ];
+  
+  categories.forEach(cat => {
+    const items = results[cat.key] || [];
+    if (items.length > 0) {
+      html += `<div class="distance-filter__results-category" style="color: ${cat.color};">
+        ${cat.icon} ${cat.label} (${items.length})
+      </div>`;
+      
+      items.slice(0, 3).forEach(item => {
+        html += `<div class="distance-filter__results-item">
+          ${item.label} - <strong>${item.distance_km} km</strong>
+        </div>`;
+      });
+      
+      if (items.length > 3) {
+        html += `<div style="font-size: 11px; color: #6b7280; margin: 4px 0;">
+          ...og ${items.length - 3} til
+        </div>`;
+      }
+    }
+  });
+  
+  filterResults.innerHTML = html;
+  filterResults.classList.add('visible');
+}
+
