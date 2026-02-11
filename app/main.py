@@ -9,6 +9,8 @@ import psycopg2
 import json
 import math
 from typing import List, Dict, Any
+from datetime import datetime, date
+from decimal import Decimal
 
 app = FastAPI(title="Safemap API")
 
@@ -67,6 +69,21 @@ def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dlambda = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
     return 2 * r * math.asin(math.sqrt(a))
+
+
+def _serialize_for_json(obj):
+    """Konverterer objekter til JSON-serialiserbare typer"""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, bytes):
+        return obj.decode('utf-8', errors='ignore')
+    elif isinstance(obj, dict):
+        return {k: _serialize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_serialize_for_json(item) for item in obj]
+    return obj
 
 
 def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
@@ -540,10 +557,12 @@ def spatial_filter(lat: float, lon: float, radius_km: float = 5.0):
                     for row in rows:
                         row_dict = dict(zip(columns, row))
                         if row_dict.get('lat') and row_dict.get('lon'):
+                            # Kun ta med nødvendige felter for å unngå serialiseringsproblemer
+                            label = row_dict.get('brannstasjon') or row_dict.get('navn') or "Brannstasjon"
                             brannstasjoner.append({
                                 "lat": float(row_dict['lat']),
                                 "lon": float(row_dict['lon']),
-                                "label": row_dict.get('brannstasjon') or row_dict.get('navn') or "Brannstasjon"
+                                "label": str(label)
                             })
             
             cursor.close()
@@ -555,30 +574,39 @@ def spatial_filter(lat: float, lon: float, radius_km: float = 5.0):
         def filter_by_distance(points, category_name):
             filtered = []
             for point in points:
-                distance = _haversine(lat, lon, point["lat"], point["lon"])
-                if distance <= radius_km:
-                    filtered.append({
-                        **point,
-                        "distance_km": round(distance, 2),
-                        "category": category_name
-                    })
+                try:
+                    distance = _haversine(lat, lon, point["lat"], point["lon"])
+                    if distance <= radius_km:
+                        # Sikre at kun serialiserbare data inkluderes
+                        filtered_point = {
+                            "lat": float(point["lat"]),
+                            "lon": float(point["lon"]),
+                            "label": str(point.get("label", "Ukjent")),
+                            "distance_km": round(distance, 2),
+                            "category": category_name
+                        }
+                        filtered.append(filtered_point)
+                except Exception as e:
+                    print(f"Feil ved filtrering av punkt: {e}")
+                    continue
             return sorted(filtered, key=lambda x: x["distance_km"])
         
+        # Filtrer alle datasett
+        filtered_hospitals = filter_by_distance(hospitals, "hospital")
+        filtered_legevakter = filter_by_distance(legevakter, "legevakt")
+        filtered_shelters = filter_by_distance(shelters, "shelter")
+        filtered_brannstasjoner = filter_by_distance(brannstasjoner, "brannstasjon")
+        
         results = {
-            "center": {"lat": lat, "lon": lon},
-            "radius_km": radius_km,
+            "center": {"lat": float(lat), "lon": float(lon)},
+            "radius_km": float(radius_km),
             "results": {
-                "hospitals": filter_by_distance(hospitals, "hospital"),
-                "legevakter": filter_by_distance(legevakter, "legevakt"),
-                "shelters": filter_by_distance(shelters, "shelter"),
-                "brannstasjoner": filter_by_distance(brannstasjoner, "brannstasjon")
+                "hospitals": filtered_hospitals,
+                "legevakter": filtered_legevakter,
+                "shelters": filtered_shelters,
+                "brannstasjoner": filtered_brannstasjoner
             },
-            "total_count": sum([
-                len(filter_by_distance(hospitals, "hospital")),
-                len(filter_by_distance(legevakter, "legevakt")),
-                len(filter_by_distance(shelters, "shelter")),
-                len(filter_by_distance(brannstasjoner, "brannstasjon"))
-            ])
+            "total_count": len(filtered_hospitals) + len(filtered_legevakter) + len(filtered_shelters) + len(filtered_brannstasjoner)
         }
         
         return JSONResponse(content=results)
