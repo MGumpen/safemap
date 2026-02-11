@@ -126,6 +126,21 @@ body {
   background: #f3f4f6;
 }
 
+.route-distance-tooltip {
+  background: rgba(17, 24, 39, 0.92);
+  border: 0;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.route-distance-tooltip::before {
+  display: none;
+}
+
 .address-suggestions__meta {
   display: block;
   font-size: 12px;

@@ -130,6 +130,14 @@ let addressSearchTimer = null;
 let activeController = null;
 let fromSelection = null;
 
+const formatRouteDistance = (distanceMeters) => {
+  const km = Number(distanceMeters) / 1000;
+  if (!Number.isFinite(km)) return '';
+  if (km >= 100) return `${km.toFixed(0)} km`;
+  if (km >= 10) return `${km.toFixed(1)} km`;
+  return `${km.toFixed(2)} km`;
+};
+
 const clearSuggestions = (target) => {
   if (!target) return;
   target.innerHTML = '';
@@ -297,6 +305,15 @@ const fetchRoute = async (from, to) => {
   const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
   if (routeLine) routeLayer.removeLayer(routeLine);
   routeLine = L.polyline(coords, { color: '#2563eb', weight: 5, opacity: 0.9 }).addTo(routeLayer);
+  const distanceLabel = formatRouteDistance(route.distance);
+  if (distanceLabel) {
+    routeLine.bindTooltip(distanceLabel, {
+      permanent: true,
+      direction: 'center',
+      className: 'route-distance-tooltip',
+      opacity: 1
+    }).openTooltip();
+  }
   map.fitBounds(routeLine.getBounds().pad(0.2));
 };
 
