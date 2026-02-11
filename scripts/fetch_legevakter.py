@@ -40,6 +40,26 @@ DEFAULT_REPORT = (
     Path(__file__).resolve().parent.parent / "src" / "legevakter_validation_report.json"
 )
 
+# Korrigerte rader fra kildelisten der adresseformatet i Excel har stavefeil
+# eller utdatert skrivemaate som ikke lar seg geokode direkte.
+MANUAL_ROW_FIXES: dict[int, dict[str, str]] = {
+    7: {"adresse": "Arnulv Eide-veien 20"},
+    20: {"adresse": "Rosenkrantzgata 17"},
+    28: {"adresse": "Engvald Hansens vei 6"},
+    58: {"adresse": "Ráđđeviessogeaidnu 7", "postnummer": "9730"},
+    62: {"adresse": "Olav Hålands veg 2", "postnummer": "4351"},
+    63: {"adresse": "Wergelands vei 3"},
+    66: {"adresse": "Egsveien 102"},
+    71: {"adresse": "Bakkemoen 22"},
+    79: {"postnummer": "8372", "poststed": "Gravdal"},
+    84: {"adresse": "Kjosveien 20"},
+    102: {"adresse": "Sjukehusveien 9"},
+    106: {"adresse": "Søndre Industrivegen 4"},
+    119: {"adresse": "Roald Amundsens gate 17"},
+    121: {"adresse": "Ingrid Slettens veg 16"},
+    129: {"adresse": "Armauer Hansens vei 30"},
+}
+
 NOMINATIM_DELAY_SECONDS = 1.05
 GEONORGE_DELAY_SECONDS = 0.05
 WARN_COORD_DIFF_METERS = 500.0
@@ -224,6 +244,31 @@ def read_legevakter_from_excel(xlsx_path: Path) -> list[LegevaktRow]:
     return legevakter
 
 
+def apply_manual_row_fixes(rows: list[LegevaktRow]) -> tuple[list[LegevaktRow], int]:
+    fixed_rows: list[LegevaktRow] = []
+    fixed_count = 0
+
+    for row in rows:
+        fix = MANUAL_ROW_FIXES.get(row.source_row)
+        if not fix:
+            fixed_rows.append(row)
+            continue
+
+        fixed_rows.append(
+            LegevaktRow(
+                source_row=row.source_row,
+                navn=row.navn,
+                kommune=row.kommune,
+                adresse=normalize_text(fix.get("adresse", row.adresse)),
+                postnummer=sanitize_postnummer(fix.get("postnummer", row.postnummer)),
+                poststed=normalize_text(fix.get("poststed", row.poststed)),
+            )
+        )
+        fixed_count += 1
+
+    return fixed_rows, fixed_count
+
+
 def has_kommune_match(source_value: str, candidate_value: str) -> bool:
     source_norm = normalize_for_compare(source_value)
     candidate_norm = normalize_for_compare(candidate_value)
@@ -257,6 +302,14 @@ def dedupe_keep_order(items: list[str]) -> list[str]:
 
 def expand_address_abbreviations(address: str) -> str:
     text = normalize_text(address)
+    text = re.sub(r"(?<=[A-Za-zÆØÅæøå])(?=\d)", " ", text)
+    text = re.sub(
+        r"\b([A-Za-zÆØÅæøå]{3,})(gate|gata|vei|veien|veg|vegen)\b",
+        r"\1 \2",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\b([A-Za-zÆØÅæøå]+)svn\.?\b", r"\1s vei", text, flags=re.IGNORECASE)
     replacements = [
         (r"\bgt\.?\b", "gate"),
         (r"\bg\.\b", "gate"),
@@ -265,6 +318,9 @@ def expand_address_abbreviations(address: str) -> str:
         (r"\bveg\.\b", "vegen"),
         (r"\bsv\.\b", "sving"),
         (r"\bveiengen\b", "vegen"),
+        (r"\bBakkemoveien\b", "Bakkemoen"),
+        (r"\bSalmillasveg\b", "Salmillas vei"),
+        (r"\bSalmillasvei\b", "Salmillas vei"),
     ]
     for pattern, replacement in replacements:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
@@ -290,7 +346,13 @@ def address_variants(address: str) -> list[str]:
         expanded.append(candidate)
         expanded.append(expand_address_abbreviations(candidate))
 
-    return dedupe_keep_order(expanded)
+    without_number: list[str] = []
+    for candidate in expanded:
+        match = re.match(r"(.+?)\s+\d+[A-Za-z]?$", candidate)
+        if match:
+            without_number.append(match.group(1))
+
+    return dedupe_keep_order(expanded + without_number)
 
 
 def kommune_variants(kommune: str) -> list[str]:
@@ -385,6 +447,23 @@ def nominatim_queries(
             break
 
     return dedupe_keep_order(queries)[:12]
+
+
+def nominatim_result_matches_location(display_name: str, row: LegevaktRow) -> bool:
+    display_norm = normalize_for_compare(display_name)
+    if not display_norm:
+        return False
+
+    poststed_norm = normalize_for_compare(row.poststed)
+    if poststed_norm and poststed_norm in display_norm:
+        return True
+
+    for kommune in kommune_variants(row.kommune):
+        kommune_norm = normalize_for_compare(kommune)
+        if kommune_norm and kommune_norm in display_norm:
+            return True
+
+    return False
 
 
 def haversine_meters(a: list[float], b: list[float]) -> float:
@@ -573,6 +652,49 @@ async def geocode_nominatim(
             "type": normalize_text(best.get("type")),
         }
 
+    fallback_queries = [
+        f"{row.navn}, {row.poststed}, Norge",
+        f"{row.navn}, Norge",
+    ]
+
+    for query in dedupe_keep_order(fallback_queries):
+        data = await request_json(
+            client=client,
+            url=NOMINATIM_URL,
+            params={
+                "format": "jsonv2",
+                "q": query,
+                "limit": "1",
+                "countrycodes": "no",
+                "addressdetails": "1",
+            },
+            extra_headers={"User-Agent": USER_AGENT},
+        )
+        if not data or not isinstance(data, list):
+            await asyncio.sleep(NOMINATIM_DELAY_SECONDS)
+            continue
+        if not data:
+            await asyncio.sleep(NOMINATIM_DELAY_SECONDS)
+            continue
+
+        best = data[0]
+        display_name = normalize_text(best.get("display_name"))
+        if not nominatim_result_matches_location(display_name, row):
+            await asyncio.sleep(NOMINATIM_DELAY_SECONDS)
+            continue
+
+        lat = best.get("lat")
+        lon = best.get("lon")
+        if lat is None or lon is None:
+            await asyncio.sleep(NOMINATIM_DELAY_SECONDS)
+            continue
+
+        return {
+            "coordinates": [float(lon), float(lat)],
+            "display_name": display_name,
+            "type": normalize_text(best.get("type")),
+        }
+
     return None
 
 
@@ -631,14 +753,24 @@ async def build_geojson_and_report(
                 coordinate_difference_m = haversine_meters(
                     geonorge["coordinates"], nominatim["coordinates"]
                 )
-                if coordinate_difference_m > warn_diff_meters:
-                    warnings.append(
-                        f"coordinate_diff_gt_{int(warn_diff_meters)}m"
-                    )
-                if coordinate_difference_m > doubt_diff_meters:
-                    warnings.append(
-                        f"coordinate_diff_gt_{int(doubt_diff_meters)}m"
-                    )
+                nominatim_type = normalize_text(nominatim.get("type")).lower()
+                low_precision_nominatim_types = {
+                    "road",
+                    "residential",
+                    "trunk",
+                    "service",
+                    "path",
+                    "pedestrian",
+                }
+                if nominatim_type not in low_precision_nominatim_types:
+                    if coordinate_difference_m > warn_diff_meters:
+                        warnings.append(
+                            f"coordinate_diff_gt_{int(warn_diff_meters)}m"
+                        )
+                    if coordinate_difference_m > doubt_diff_meters:
+                        warnings.append(
+                            f"coordinate_diff_gt_{int(doubt_diff_meters)}m"
+                        )
 
             if geonorge and geonorge["confidence"] == "low":
                 warnings.append("low_geonorge_confidence")
@@ -758,7 +890,11 @@ async def run(args: argparse.Namespace) -> int:
         print("Fant ingen legevaktrader i Excel-filen.")
         return 1
 
+    rows, fixed_count = apply_manual_row_fixes(rows)
+
     print(f"Leste {len(rows)} legevakter fra {xlsx_path}")
+    if fixed_count:
+        print(f"Brukte manuelle adressekorrigeringer for {fixed_count} rader")
     geojson, report = await build_geojson_and_report(
         rows=rows,
         warn_diff_meters=args.warn_diff_meters,
