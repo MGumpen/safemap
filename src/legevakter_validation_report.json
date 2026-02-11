@@ -1,0 +1,4515 @@
+{
+  "summary": {
+    "total_input_rows": 167,
+    "features_written": 98,
+    "unresolved_count": 69,
+    "doubtful_count": 1,
+    "warn_coord_diff_meters": 500.0,
+    "doubt_coord_diff_meters": 2000.0
+  },
+  "unresolved": [
+    {
+      "source_row": 5,
+      "navn": "Aurskog-Høland og Rømskog legevakt",
+      "kommune": "Aurskog-Høland",
+      "adresse": "Helsehuset 1. etg., Parkveien 2",
+      "postnummer": "1940",
+      "poststed": "Bjørkelangen",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 7,
+      "navn": "Balsfjord og Storfjord interkommunale legevakt",
+      "kommune": "Balsfjord, Storfjord - Omasvuotna - Omasvuono",
+      "adresse": "Storsteinnes Legekontor Arnulv Eides vei 20",
+      "postnummer": "9050",
+      "poststed": "Storsteinnes",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 9,
+      "navn": "Bardu interkommunale legevakt",
+      "kommune": "Ibestad, Loabák - Lavangen, Bardu, Salangen, Målselv, Dyrøy",
+      "adresse": "Fogd Holmboes gt 56",
+      "postnummer": "9360",
+      "poststed": "Bardu",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 11,
+      "navn": "Berlevåg legevakt",
+      "kommune": "Berlevåg",
+      "adresse": "Iversens vei 1",
+      "postnummer": "9980",
+      "poststed": "Berlevåg",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 17,
+      "navn": "Bykle og Valle legevakt",
+      "kommune": "Valle, Bykle",
+      "adresse": "Skulevegen 3",
+      "postnummer": "4755",
+      "poststed": "Hovden",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 18,
+      "navn": "Båtsfjord legevakt/sykestue",
+      "kommune": "Båtsfjord",
+      "adresse": "Helseveien 1",
+      "postnummer": "9990",
+      "poststed": "Båtsfjord",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 20,
+      "navn": "Drammen legevakt",
+      "kommune": "Drammen, Lier",
+      "adresse": "Rosenkrantz gata 17",
+      "postnummer": "3018",
+      "poststed": "Drammen",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 21,
+      "navn": "Eidsvoll legevakt",
+      "kommune": "Eidsvoll, Hurdal",
+      "adresse": "Helge Neumanns veg 5",
+      "postnummer": "2080",
+      "poststed": "Eidsvoll",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 22,
+      "navn": "Elverum interkommunale legevakt",
+      "kommune": "Åsnes, Våler (Innlandet), Elverum, Åmot",
+      "adresse": "Kirkevegen 47",
+      "postnummer": "2409",
+      "poststed": "Elverum",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 24,
+      "navn": "Etne og Vindafjord interkommunale legevakt",
+      "kommune": "Vindafjord, Etne",
+      "adresse": "Eiabakken 7",
+      "postnummer": "5580",
+      "poststed": "Ølen",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 28,
+      "navn": "Flekkefjord interkommunale legevakt",
+      "kommune": "Flekkefjord, Lyngdal, Kvinesdal",
+      "adresse": "Engv. Hansensvn. 6",
+      "postnummer": "4405",
+      "poststed": "Flekkefjord",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 30,
+      "navn": "Follo legevakt",
+      "kommune": "Nordre Follo, Ås, Frogn, Enebakk",
+      "adresse": "Vardåsveien 3",
+      "postnummer": "1423",
+      "poststed": "Ski",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 31,
+      "navn": "Fosen legevakt",
+      "kommune": "Ørland, Åfjord",
+      "adresse": "Skolegata 9",
+      "postnummer": "7130",
+      "poststed": "Brekstad",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 32,
+      "navn": "Fredrikstad og Hvaler legevakt",
+      "kommune": "Fredrikstad, Hvaler",
+      "adresse": "Jens Wilhelmsensgt 1",
+      "postnummer": "1678",
+      "poststed": "Kråkerøy",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 36,
+      "navn": "Gjøvik Interkommunale legevakt",
+      "kommune": "Gjøvik, Østre Toten, Vestre Toten, Nordre Land, Søndre Land",
+      "adresse": "Kyrre Grepps gt 11",
+      "postnummer": "2819",
+      "poststed": "Gjøvik",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 37,
+      "navn": "Gloppen legevakt",
+      "kommune": "Gloppen",
+      "adresse": "Gloppen Legesenter, Grandavegen 12",
+      "postnummer": "6823",
+      "poststed": "6823 Sandane",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 39,
+      "navn": "Grane og Hattfjelldal legevakt.",
+      "kommune": "Grane, Aarborte - Hattfjelldal",
+      "adresse": "Legekontoret, Nyborgveien 2",
+      "postnummer": "8692",
+      "poststed": "Hattfjelldal",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 41,
+      "navn": "Hammerfest legevakt",
+      "kommune": "Hammerfest",
+      "adresse": "Hammerfest sykehus, Sykehusveien 35",
+      "postnummer": "9601",
+      "poststed": "Hammerfest",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 42,
+      "navn": "Harstad interkommunale legevakt",
+      "kommune": "Harstad, Kvæfjord, Lødingen",
+      "adresse": "UNN Harstad, St Olavsgt 80",
+      "postnummer": "9406",
+      "poststed": "Harstad",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 43,
+      "navn": "HAS legevakt",
+      "kommune": "Heim, Smøla, Aure",
+      "adresse": "Glomsmyrvegen 19",
+      "postnummer": "6683",
+      "poststed": "Vågland",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 46,
+      "navn": "Hedmarken interkommunale legevakt",
+      "kommune": "Hamar, Ringsaker, Løten, Stange",
+      "adresse": "Tunbekkvegen 8",
+      "postnummer": "1212",
+      "poststed": "Ottestad",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 47,
+      "navn": "Helgelandsykehuset legevakt",
+      "kommune": "Alstahaug, Leirfjord",
+      "adresse": "Prestmarkveien 1",
+      "postnummer": "8800",
+      "poststed": "Sandnessjøen",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 50,
+      "navn": "Horten kommunale legevakt",
+      "kommune": "Horten",
+      "adresse": "Harald Pedersensgt 9",
+      "postnummer": "3182",
+      "poststed": "Horten",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 54,
+      "navn": "Indre Salten legevakt",
+      "kommune": "Saltdal, Fauske - Fuossko, Sørfold",
+      "adresse": "Helsetunet 2",
+      "postnummer": "8200",
+      "poststed": "Fauske",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 55,
+      "navn": "Indre Østfold legevakt",
+      "kommune": "Marker, Indre Østfold, Skiptvet",
+      "adresse": "Sykehusgata 2",
+      "postnummer": "1807",
+      "poststed": "Askim",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 57,
+      "navn": "Jessheim interkommunale legevakt",
+      "kommune": "Gjerdrum, Ullensaker, Nannestad",
+      "adresse": "Ragnar Strøms Veg 6",
+      "postnummer": "2067",
+      "poststed": "Jessheim",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 58,
+      "navn": "Karasjok legevakt",
+      "kommune": "Kárášjohka - Karasjok",
+      "adresse": "Raddeviessugeaidnu 7",
+      "postnummer": "9734",
+      "poststed": "Karasjok",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 59,
+      "navn": "Karlsøy legevakt",
+      "kommune": "Karlsøy",
+      "adresse": "Rådhuset",
+      "postnummer": "9130",
+      "poststed": "Hansnes",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 62,
+      "navn": "Klepp og Time legevakt",
+      "kommune": "Klepp, Time",
+      "adresse": "Olav Hålandsveg 2",
+      "postnummer": "4358",
+      "poststed": "Kleppe",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 63,
+      "navn": "Kongsberg intrekommunale legevakt",
+      "kommune": "Kongsberg, Øvre Eiker, Flesberg, Rollag",
+      "adresse": "Wergelandsvei 3",
+      "postnummer": "3612",
+      "poststed": "Kongsberg",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 66,
+      "navn": "Kristiansand interkommunale legevakt",
+      "kommune": "Kristiansand, Lillesand, Birkenes, Åseral, Hægebostad",
+      "adresse": "Egsveien102",
+      "postnummer": "4615",
+      "poststed": "Kristiansand",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 67,
+      "navn": "Kristiansund og omegn legevakt",
+      "kommune": "Kristiansund, Averøy, Gjemnes, Tingvoll",
+      "adresse": "Rådhusbakken 3",
+      "postnummer": "6522",
+      "poststed": "Frei",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 71,
+      "navn": "Kåfjord legevakt",
+      "kommune": "Gáivuotna - Kåfjord - Kaivuono",
+      "adresse": "Helsetunet, Bakkemoveien 22",
+      "postnummer": "9147",
+      "poststed": "Birtavarre",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 74,
+      "navn": "Legevakten i Arendal",
+      "kommune": "Risør, Grimstad, Arendal, Gjerstad, Vegårshei, Tvedestrand, Froland, Åmli, Nissedal, Fyresdal, Evje og Hornnes, Bygland",
+      "adresse": "Sykehusveien 1",
+      "postnummer": "4838",
+      "poststed": "Arendal",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 75,
+      "navn": "legevakten i Orkdalsregionen",
+      "kommune": "Rennebu, Skaun, Hitra, Orkland, Rindal, Surnadal",
+      "adresse": "Allfarveien 1",
+      "postnummer": "7300",
+      "poststed": "Orkanger",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 79,
+      "navn": "Lofoten interkommunale legevakt",
+      "kommune": "Flakstad, Vestvågøy, Moskenes",
+      "adresse": "Risfaret 8",
+      "postnummer": "8370",
+      "poststed": "Leknes",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 84,
+      "navn": "Lyngen legevakt",
+      "kommune": "Lyngen",
+      "adresse": "Kongsveien 20",
+      "postnummer": "9060",
+      "poststed": "Lyngseidet",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 87,
+      "navn": "Molde IK legevakt",
+      "kommune": "Molde, Aukra, Hustadvika, Sunndal",
+      "adresse": "Veøygata 1",
+      "postnummer": "6413",
+      "poststed": "Molde",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 89,
+      "navn": "Måsøy legevakt",
+      "kommune": "Måsøy",
+      "adresse": "Søndregate 1",
+      "postnummer": "9690",
+      "poststed": "Havøysund",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 90,
+      "navn": "Narvik legevakt",
+      "kommune": "Narvik, Gratangen",
+      "adresse": "Sykehusveien 1",
+      "postnummer": "8516",
+      "poststed": "Narvik",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 91,
+      "navn": "Nedre Romerike legevakt",
+      "kommune": "Rælingen, Lørenskog, Lillestrøm",
+      "adresse": "Dampsagveien 4",
+      "postnummer": "2004",
+      "poststed": "Lillestrøm",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 95,
+      "navn": "Nittedal legevakt",
+      "kommune": "Nittedal",
+      "adresse": "Rådstua, Rådhusveien 3",
+      "postnummer": "1482",
+      "poststed": "Nittedal",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 100,
+      "navn": "Nordkyn legevakt",
+      "kommune": "Lebesby, Gamvik",
+      "adresse": "Johan Salmillasveg 22",
+      "postnummer": "9790",
+      "poststed": "Kjøllefjord",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 102,
+      "navn": "Nord-Østerdal legevakt",
+      "kommune": "Rendalen, Tolga, Tynset, Alvdal, Folldal",
+      "adresse": "Tynset sykehuset",
+      "postnummer": "2500",
+      "poststed": "Tynset",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 104,
+      "navn": "Notodden interkommunale legevakt",
+      "kommune": "Notodden, Midt-Telemark, Hjartdal",
+      "adresse": "Tinnegrendvegen 5",
+      "postnummer": "3683",
+      "poststed": "Notodden",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 105,
+      "navn": "Nærøysund legevakt",
+      "kommune": "Nærøysund",
+      "adresse": "Nøkkroseveien 2",
+      "postnummer": "7970",
+      "poststed": "Kolvereid",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 106,
+      "navn": "Oppdal legevakt",
+      "kommune": "Oppdal",
+      "adresse": "Industrivn s 4",
+      "postnummer": "7340",
+      "poststed": "Oppdal",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 112,
+      "navn": "Ringerike interkommunale legevakt",
+      "kommune": "Ringerike, Hole, Flå, Sigdal, Krødsherad, Modum, Jevnaker",
+      "adresse": "Trygstadveien 8",
+      "postnummer": "3511",
+      "poststed": "Hønefoss",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 113,
+      "navn": "Ryfylke legevakt",
+      "kommune": "Hjelmeland, Kvitsøy",
+      "adresse": "Judabergvn. 6",
+      "postnummer": "4160",
+      "poststed": "Finnøy",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 116,
+      "navn": "Røst legevakt",
+      "kommune": "Røst",
+      "adresse": "Røstlandsveien 28",
+      "postnummer": "8064",
+      "poststed": "Røst",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 118,
+      "navn": "Sandnes legevakt",
+      "kommune": "Sandnes, Gjesdal",
+      "adresse": "Brannstasjonsveien 2",
+      "postnummer": "4312",
+      "poststed": "Sandnes",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 119,
+      "navn": "Sarpsborg og Rakkestad legevakt",
+      "kommune": "Sarpsborg, Rakkestad",
+      "adresse": "Roald Amundsensgate 17",
+      "postnummer": "1723",
+      "poststed": "Sarpsborg",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 121,
+      "navn": "Seljord og Kviteseid legevakt",
+      "kommune": "Seljord, Kviteseid",
+      "adresse": "Ingrid Slettensveg 16",
+      "postnummer": "3840",
+      "poststed": "Seljord",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 123,
+      "navn": "Skien interkommunale legevakt",
+      "kommune": "Skien, Siljan, Drangedal, Nome",
+      "adresse": "Ulefossvegen 51 b",
+      "postnummer": "3710",
+      "poststed": "Skien",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 124,
+      "navn": "Skjervøy legevakt",
+      "kommune": "Skjervøy",
+      "adresse": "Sonjatunveien 21",
+      "postnummer": "9156",
+      "poststed": "Storslett",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 125,
+      "navn": "Sogn LMS legevakt",
+      "kommune": "Aurland, Lærdal, Årdal",
+      "adresse": "Sjukehusvegen 9",
+      "postnummer": "6887",
+      "poststed": "Lærdal",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 127,
+      "navn": "Solund kommunale legevakt",
+      "kommune": "Solund",
+      "adresse": "Solund legekontor, Taklegarden 1",
+      "postnummer": "6924",
+      "poststed": "Hardbakke",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 129,
+      "navn": "Stavanger legevakt",
+      "kommune": "Stavanger, Sola, Randaberg",
+      "adresse": "Armauer Hansensvei 30",
+      "postnummer": "4011",
+      "poststed": "Stavanger",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 131,
+      "navn": "Steinkjer interkommunale legevakt",
+      "kommune": "Steinkjer, Snåase - Snåsa",
+      "adresse": "Seilmakergata 8",
+      "postnummer": "7729",
+      "poststed": "Steinkjer",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 135,
+      "navn": "Sunnfjord og Ytre Sogn interkommunale legevakt (SYS IKL)",
+      "kommune": "Hyllestad, Høyanger, Askvoll, Fjaler, Sunnfjord",
+      "adresse": "Svanhaugvegen 2",
+      "postnummer": "6812",
+      "poststed": "Førde",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 138,
+      "navn": "Søre Sunnmøre legevakt",
+      "kommune": "Ørsta, Volda, Sande, Herøy (Møre og Romsdal)",
+      "adresse": "Torvmyrane 11 B",
+      "postnummer": "6160",
+      "poststed": "Hovdebygda",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 140,
+      "navn": "Tana-Nesseby legevakt",
+      "kommune": "Deatnu - Tana, Unjárga - Nesseby",
+      "adresse": "Maskevarreveien 3",
+      "postnummer": "9845",
+      "poststed": "Tana",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 145,
+      "navn": "Trondheim, Malvik, Melhus og Midtre-Gauldal legevakt",
+      "kommune": "Trondheim, Midtre Gauldal, Malvik, Melhus",
+      "adresse": "Mauritz Hansensgt 4",
+      "postnummer": "7004",
+      "poststed": "Trondheim",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 151,
+      "navn": "Ulstein-Hareid legevakt",
+      "kommune": "Ulstein, Hareid",
+      "adresse": "Sjøgata 1",
+      "postnummer": "6065",
+      "poststed": "Ulsteinvik",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 154,
+      "navn": "Vanylven legesenter",
+      "kommune": "Vanylven",
+      "adresse": "Combisenteret",
+      "postnummer": "6143",
+      "poststed": "Fiskå",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 156,
+      "navn": "Vefsn legevakt",
+      "kommune": "Vefsn",
+      "adresse": "Vefsnveien 27",
+      "postnummer": "8656",
+      "poststed": "Mosjøen",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 159,
+      "navn": "Vesterålen interkommunale legevakt",
+      "kommune": "Hadsel, Bø, Øksnes, Sortland, Andøy",
+      "adresse": "Dr Thodes gt 3",
+      "postnummer": "8450",
+      "poststed": "Stokmarknes",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 163,
+      "navn": "Værnesregionen legevakt",
+      "kommune": "Selbu, Tydal, Meråker, Stjørdal",
+      "adresse": "Breidablikkvn. 1",
+      "postnummer": "7500",
+      "poststed": "Stjørdal",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 165,
+      "navn": "Vågan legevakt",
+      "kommune": "Vågan",
+      "adresse": "Kong Øysteins gt 7",
+      "postnummer": "8300",
+      "poststed": "Svolvær",
+      "warnings": [
+        "missing_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    }
+  ],
+  "doubtful": [
+    {
+      "source_row": 38,
+      "navn": "Gol og Hemsedal legevakt",
+      "warnings": [
+        "coordinate_diff_gt_500m",
+        "coordinate_diff_gt_2000m"
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "source_row": 2,
+      "navn": "Alta kommunale legevakt",
+      "input": {
+        "kommune": "Alta",
+        "adresse": "Markveien 31",
+        "postnummer": "9506",
+        "poststed": "Alta"
+      },
+      "selected": {
+        "adresse": "Markveien 31",
+        "postnummer": "9506",
+        "poststed": "Alta",
+        "coordinates": [
+          23.275991,
+          69.96865
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          23.275991,
+          69.96865
+        ],
+        "display_name": "31, Markveien, Nyland, Midtbakken, Alta, Finnmark, 9510, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 3,
+      "navn": "Asker og Bærum legevakt",
+      "input": {
+        "kommune": "Bærum",
+        "adresse": "Sogneprest Munthe-Kaas vei 100",
+        "postnummer": "1346",
+        "poststed": "Gjettum"
+      },
+      "selected": {
+        "adresse": "Sogneprest Munthe-Kaas vei 100",
+        "postnummer": "1346",
+        "poststed": "GJETTUM",
+        "coordinates": [
+          10.510234591020966,
+          59.898313289908145
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.510234591020966,
+          59.898313289908145
+        ],
+        "address": "Sogneprest Munthe-Kaas vei 100",
+        "postnummer": "1346",
+        "poststed": "GJETTUM",
+        "kommunenavn": "BÆRUM",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 4,
+      "navn": "Askøy legevakt",
+      "input": {
+        "kommune": "Askøy",
+        "adresse": "Kleppevegen 17",
+        "postnummer": "5300",
+        "poststed": "Kleppestø"
+      },
+      "selected": {
+        "adresse": "Kleppevegen 17",
+        "postnummer": "5300",
+        "poststed": "Kleppestø",
+        "coordinates": [
+          5.2274209,
+          60.4127025
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          5.2274209,
+          60.4127025
+        ],
+        "display_name": "Kleppevegen, Solhola, Strand, Kleppestø, Askøy, Vestland, 5300, Norge",
+        "type": "secondary"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 6,
+      "navn": "Austevoll legevakt",
+      "input": {
+        "kommune": "Austevoll",
+        "adresse": "Birkelandsvegen 6",
+        "postnummer": "5392",
+        "poststed": "Storebø"
+      },
+      "selected": {
+        "adresse": "Birkelandsvegen 6",
+        "postnummer": "5392",
+        "poststed": "Storebø",
+        "coordinates": [
+          5.226197,
+          60.099383
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          5.226197,
+          60.099383
+        ],
+        "display_name": "6, Birkelandsvegen, Birkeland, Storebø, Austevoll, Vestland, 5392, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 8,
+      "navn": "Bamble legevakt",
+      "input": {
+        "kommune": "Bamble",
+        "adresse": "Sykehjemsveien 1",
+        "postnummer": "3960",
+        "poststed": "Stathelle"
+      },
+      "selected": {
+        "adresse": "Sykehjemsveien 1",
+        "postnummer": "3960",
+        "poststed": "Stathelle",
+        "coordinates": [
+          9.7257597,
+          59.0182278
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          9.7257597,
+          59.0182278
+        ],
+        "display_name": "1, Sykehjemsveien, Sundby, Stathelle, Bamble, Telemark, 3961, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 10,
+      "navn": "Bergen legvakt",
+      "input": {
+        "kommune": "Bergen",
+        "adresse": "Solheimsgaten 9",
+        "postnummer": "5058",
+        "poststed": "Bergen"
+      },
+      "selected": {
+        "adresse": "Solheimsgaten 9",
+        "postnummer": "5058",
+        "poststed": "Bergen",
+        "coordinates": [
+          5.3362871,
+          60.3774598
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          5.3362871,
+          60.3774598
+        ],
+        "display_name": "Solheimsgaten 9, Solheimsgaten, Solheim Industripark, Solheim, Årstad, Bergen, Vestland, 5054, Norge",
+        "type": "map"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 12,
+      "navn": "Bindal legevakt",
+      "input": {
+        "kommune": "Bindal",
+        "adresse": "Oldervikveien 5",
+        "postnummer": "7980",
+        "poststed": "Terråk"
+      },
+      "selected": {
+        "adresse": "Oldervikveien 5",
+        "postnummer": "7980",
+        "poststed": "Terråk",
+        "coordinates": [
+          12.377303,
+          65.087855
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          12.377303,
+          65.087855
+        ],
+        "display_name": "5, Oldervikveien, Nordre Terråk, Terråk, Bindal, Nordland, 7980, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 13,
+      "navn": "Bjørnafjorden og Samnanger legevakt",
+      "input": {
+        "kommune": "Bjørnafjorden, Samnanger",
+        "adresse": "Mobergsbakken 111",
+        "postnummer": "5209",
+        "poststed": "Os"
+      },
+      "selected": {
+        "adresse": "Mobergsbakken 111",
+        "postnummer": "5209",
+        "poststed": "OS",
+        "coordinates": [
+          5.451991203776373,
+          60.18218701102171
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.451991203776373,
+          60.18218701102171
+        ],
+        "address": "Mobergsbakken 111",
+        "postnummer": "5209",
+        "poststed": "OS",
+        "kommunenavn": "BJØRNAFJORDEN",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 14,
+      "navn": "Bodø legevakt",
+      "input": {
+        "kommune": "Bodø, Beiarn",
+        "adresse": "Plassmyrveien 13",
+        "postnummer": "8008",
+        "poststed": "Bodø"
+      },
+      "selected": {
+        "adresse": "Plassmyrveien 13",
+        "postnummer": "8008",
+        "poststed": "BODØ",
+        "coordinates": [
+          14.414529202367408,
+          67.277750249422
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          14.414529202367408,
+          67.277750249422
+        ],
+        "address": "Plassmyrveien 13",
+        "postnummer": "8008",
+        "poststed": "BODØ",
+        "kommunenavn": "BODØ",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 15,
+      "navn": "Brønnøy og Sømna legevakt",
+      "input": {
+        "kommune": "Sømna, Brønnøy",
+        "adresse": "Skules vei 13",
+        "postnummer": "8904",
+        "poststed": "Brønnøysund"
+      },
+      "selected": {
+        "adresse": "Skules vei 13",
+        "postnummer": "8904",
+        "poststed": "BRØNNØYSUND",
+        "coordinates": [
+          12.206806597306926,
+          65.46475821126086
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          12.206806597306926,
+          65.46475821126086
+        ],
+        "address": "Skules vei 13",
+        "postnummer": "8904",
+        "poststed": "BRØNNØYSUND",
+        "kommunenavn": "BRØNNØY",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 16,
+      "navn": "Bråset legevakt",
+      "input": {
+        "kommune": "Asker",
+        "adresse": "Bråsetveien 21B",
+        "postnummer": "3440",
+        "poststed": "Røyken"
+      },
+      "selected": {
+        "adresse": "Bråsetveien 21B",
+        "postnummer": "3440",
+        "poststed": "RØYKEN",
+        "coordinates": [
+          10.38711994086369,
+          59.742950503339266
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.38711994086369,
+          59.742950503339266
+        ],
+        "address": "Bråsetveien 21B",
+        "postnummer": "3440",
+        "poststed": "RØYKEN",
+        "kommunenavn": "ASKER",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          10.3871203,
+          59.7429507
+        ],
+        "display_name": "21B, Bråsetveien, Bråsethøgda, Heggum, Røyken, Asker, Akershus, 3440, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 19,
+      "navn": "Dalane interkommunale legevakt (Eigersund legevakt)",
+      "input": {
+        "kommune": "Eigersund, Sokndal, Lund, Bjerkreim",
+        "adresse": "Sjukehusv. 38",
+        "postnummer": "4373",
+        "poststed": "Egersund"
+      },
+      "selected": {
+        "adresse": "Sjukehusveien 38A",
+        "postnummer": "4373",
+        "poststed": "EGERSUND",
+        "coordinates": [
+          6.016992124795671,
+          58.465214447433205
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.016992124795671,
+          58.465214447433205
+        ],
+        "address": "Sjukehusveien 38A",
+        "postnummer": "4373",
+        "poststed": "EGERSUND",
+        "kommunenavn": "EIGERSUND",
+        "score": 10.138,
+        "address_ratio": 0.828,
+        "confidence": "high",
+        "ambiguous": true
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "ambiguous_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 23,
+      "navn": "Engerdal legevakt",
+      "input": {
+        "kommune": "Engerdal",
+        "adresse": "Futveien 8",
+        "postnummer": "2443",
+        "poststed": "Drevsjø"
+      },
+      "selected": {
+        "adresse": "Futveien 8",
+        "postnummer": "2443",
+        "poststed": "Drevsjø",
+        "coordinates": [
+          12.0280348,
+          61.883027
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          12.0280348,
+          61.883027
+        ],
+        "display_name": "8, Futveien, Skrivergardsjordet, Vestre Bakken, Drevsjø, Engerdal, Innlandet, 2443, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 25,
+      "navn": "Farsund legevakt",
+      "input": {
+        "kommune": "Farsund",
+        "adresse": "Livdekrona 62",
+        "postnummer": "4550",
+        "poststed": "Farsund"
+      },
+      "selected": {
+        "adresse": "Livdekrona 62",
+        "postnummer": "4550",
+        "poststed": "FARSUND",
+        "coordinates": [
+          6.787518259163184,
+          58.08930427925039
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.787518259163184,
+          58.08930427925039
+        ],
+        "address": "Livdekrona 62",
+        "postnummer": "4550",
+        "poststed": "FARSUND",
+        "kommunenavn": "FARSUND",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          6.787517,
+          58.0893005
+        ],
+        "display_name": "62, Livdekrona, Sunde, Farsund, Agder, 4550, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.4,
+      "warnings": []
+    },
+    {
+      "source_row": 26,
+      "navn": "Fedje legevakt",
+      "input": {
+        "kommune": "Fedje",
+        "adresse": "Mulevegen 18",
+        "postnummer": "5947",
+        "poststed": "Fedje"
+      },
+      "selected": {
+        "adresse": "Mulevegen 18",
+        "postnummer": "5947",
+        "poststed": "FEDJE",
+        "coordinates": [
+          4.715598359410284,
+          60.77988686935809
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          4.715598359410284,
+          60.77988686935809
+        ],
+        "address": "Mulevegen 18",
+        "postnummer": "5947",
+        "poststed": "FEDJE",
+        "kommunenavn": "FEDJE",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          4.715599,
+          60.779887
+        ],
+        "display_name": "18, Mulevegen, Vestkanten, Mulen, Fedje, Vestland, 5947, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 27,
+      "navn": "Finnsnes interkommunale legevakt",
+      "input": {
+        "kommune": "Sørreisa, Senja",
+        "adresse": "Helsesenterveien 32",
+        "postnummer": "9300",
+        "poststed": "Finnsnes"
+      },
+      "selected": {
+        "adresse": "Helsesenterveien 32",
+        "postnummer": "9300",
+        "poststed": "FINNSNES",
+        "coordinates": [
+          18.010281283283703,
+          69.23473459209707
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          18.010281283283703,
+          69.23473459209707
+        ],
+        "address": "Helsesenterveien 32",
+        "postnummer": "9300",
+        "poststed": "FINNSNES",
+        "kommunenavn": "SENJA",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 29,
+      "navn": "Florø legevakt",
+      "input": {
+        "kommune": "Kinn",
+        "adresse": "Hans Blomgate 39",
+        "postnummer": "6908",
+        "poststed": "Florø"
+      },
+      "selected": {
+        "adresse": "Hans Blomgate 39",
+        "postnummer": "6908",
+        "poststed": "Florø",
+        "coordinates": [
+          5.0395179,
+          61.5992801
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          5.0395179,
+          61.5992801
+        ],
+        "display_name": "39, Hans Blomgate, Gaddevåg, Florø, Kinn, Vestland, 6905, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 33,
+      "navn": "Frøya legevakt",
+      "input": {
+        "kommune": "Frøya",
+        "adresse": "Sørveien 17 B",
+        "postnummer": "7260",
+        "poststed": "Sistranda"
+      },
+      "selected": {
+        "adresse": "Sørveien 17 B",
+        "postnummer": "7260",
+        "poststed": "Sistranda",
+        "coordinates": [
+          8.8276352,
+          63.7288937
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          8.8276352,
+          63.7288937
+        ],
+        "display_name": "17B, Sørveien, Innersian, Grønnskaget, Sistranda, Frøya, Trøndelag, 7260, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 34,
+      "navn": "Gildeskål legevakt",
+      "input": {
+        "kommune": "Gildeskål",
+        "adresse": "Sjømyra 9",
+        "postnummer": "8140",
+        "poststed": "Inndyr"
+      },
+      "selected": {
+        "adresse": "Sjømyra 9",
+        "postnummer": "8140",
+        "poststed": "Inndyr",
+        "coordinates": [
+          14.030982,
+          67.036122
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          14.030982,
+          67.036122
+        ],
+        "display_name": "9, Sjømyra, Klokkargården, Inndyr, Gildeskål, Nordland, 8140, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 35,
+      "navn": "Giske legevakt",
+      "input": {
+        "kommune": "Giske",
+        "adresse": "Ytterland 1",
+        "postnummer": "6050",
+        "poststed": "Valderøya"
+      },
+      "selected": {
+        "adresse": "Ytterland 1",
+        "postnummer": "6050",
+        "poststed": "Valderøya",
+        "coordinates": [
+          6.1027746,
+          62.5067043
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          6.1027746,
+          62.5067043
+        ],
+        "display_name": "1, Ytterland, Skjong, Valderhaug, Giske, Møre og Romsdal, 6050, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 38,
+      "navn": "Gol og Hemsedal legevakt",
+      "input": {
+        "kommune": "Gol, Hemsedal",
+        "adresse": "Hemsedalsvegen 2887",
+        "postnummer": "3560",
+        "poststed": "Hemsedal"
+      },
+      "selected": {
+        "adresse": "Hemsedalsvegen 2887",
+        "postnummer": "3560",
+        "poststed": "HEMSEDAL",
+        "coordinates": [
+          8.565671463828973,
+          60.86070400866647
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          8.565671463828973,
+          60.86070400866647
+        ],
+        "address": "Hemsedalsvegen 2887",
+        "postnummer": "3560",
+        "poststed": "HEMSEDAL",
+        "kommunenavn": "HEMSEDAL",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          8.7463422,
+          60.7853083
+        ],
+        "display_name": "Hemsedalsvegen, Hemsedal, Buskerud, Norge",
+        "type": "trunk"
+      },
+      "coordinate_difference_m": 12892.1,
+      "warnings": [
+        "coordinate_diff_gt_500m",
+        "coordinate_diff_gt_2000m"
+      ]
+    },
+    {
+      "source_row": 40,
+      "navn": "Hamarøy legevakt",
+      "input": {
+        "kommune": "Hamarøy",
+        "adresse": "Dr. Kalstads vei 8",
+        "postnummer": "8294",
+        "poststed": "Hamarøy"
+      },
+      "selected": {
+        "adresse": "Dr. Kalstads vei 8",
+        "postnummer": "8294",
+        "poststed": "Hamarøy",
+        "coordinates": [
+          15.617202,
+          68.084986
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          15.617202,
+          68.084986
+        ],
+        "display_name": "8, Dr. Kalstads vei, Presteidskogen, Herset, Oppeid, Hamarøy, Nordland, 8294, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 44,
+      "navn": "Hasvik legevakt",
+      "input": {
+        "kommune": "Hasvik",
+        "adresse": "Sykestuveien 13",
+        "postnummer": "9590",
+        "poststed": "Hasvik"
+      },
+      "selected": {
+        "adresse": "Sykestuveien 13",
+        "postnummer": "9590",
+        "poststed": "HASVIK",
+        "coordinates": [
+          22.164740932329998,
+          70.48565439033861
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          22.164740932329998,
+          70.48565439033861
+        ],
+        "address": "Sykestuveien 13",
+        "postnummer": "9590",
+        "poststed": "HASVIK",
+        "kommunenavn": "HASVIK",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          22.1647408,
+          70.4856544
+        ],
+        "display_name": "13, Sykestuveien, Hasvik, Finnmark, 9590, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 45,
+      "navn": "Haugesund interkommunale legevakt",
+      "input": {
+        "kommune": "Haugesund, Bokn, Tysvær, Utsira, Sveio",
+        "adresse": "Karmsundgt. 59B",
+        "postnummer": "5531",
+        "poststed": "Haugesund"
+      },
+      "selected": {
+        "adresse": "Karmsundgata 59B",
+        "postnummer": "5531",
+        "poststed": "HAUGESUND",
+        "coordinates": [
+          5.293644578599639,
+          59.403712042296256
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.293644578599639,
+          59.403712042296256
+        ],
+        "address": "Karmsundgata 59B",
+        "postnummer": "5531",
+        "poststed": "HAUGESUND",
+        "kommunenavn": "HAUGESUND",
+        "score": 10.667,
+        "address_ratio": 0.933,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 48,
+      "navn": "Herøy og Dønna legevakt",
+      "input": {
+        "kommune": "Herøy (Nordland), Dønna",
+        "adresse": "Karolineveien 29",
+        "postnummer": "8850",
+        "poststed": "Herøy"
+      },
+      "selected": {
+        "adresse": "Karolineveien 29",
+        "postnummer": "8850",
+        "poststed": "HERØY",
+        "coordinates": [
+          12.288189349226043,
+          65.98135099436813
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          12.288189349226043,
+          65.98135099436813
+        ],
+        "address": "Karolineveien 29",
+        "postnummer": "8850",
+        "poststed": "HERØY",
+        "kommunenavn": "HERØY",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 49,
+      "navn": "Hol kommunale legevakt",
+      "input": {
+        "kommune": "Hol",
+        "adresse": "Ustedalen 2",
+        "postnummer": "3580",
+        "poststed": "Geilo"
+      },
+      "selected": {
+        "adresse": "Ustedalen 2",
+        "postnummer": "3580",
+        "poststed": "Geilo",
+        "coordinates": [
+          8.2066107,
+          60.5329279
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          8.2066107,
+          60.5329279
+        ],
+        "display_name": "2, Ustedalen, Timrehaugane, Vangstad, Geilo, Hol, Buskerud, 3580, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 51,
+      "navn": "Hå legevakt",
+      "input": {
+        "kommune": "Hå",
+        "adresse": "Rimestad 16",
+        "postnummer": "4365",
+        "poststed": "Nærbø"
+      },
+      "selected": {
+        "adresse": "Rimestad 16",
+        "postnummer": "4365",
+        "poststed": "NÆRBØ",
+        "coordinates": [
+          5.606331474706605,
+          58.69927131350032
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.606331474706605,
+          58.69927131350032
+        ],
+        "address": "Rimestad 16",
+        "postnummer": "4365",
+        "poststed": "NÆRBØ",
+        "kommunenavn": "HÅ",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          5.606331,
+          58.699271
+        ],
+        "display_name": "16, Rimestad, Nærbø, Hå, Rogaland, 4365, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 52,
+      "navn": "Indre Fosen legevakt",
+      "input": {
+        "kommune": "Indre Fosen",
+        "adresse": "Årnsetveien 35",
+        "postnummer": "7100",
+        "poststed": "Rissa"
+      },
+      "selected": {
+        "adresse": "Årnsetveien 35",
+        "postnummer": "7100",
+        "poststed": "RISSA",
+        "coordinates": [
+          9.95802294481041,
+          63.58679994829247
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          9.95802294481041,
+          63.58679994829247
+        ],
+        "address": "Årnsetveien 35",
+        "postnummer": "7100",
+        "poststed": "RISSA",
+        "kommunenavn": "INDRE FOSEN",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          9.958023,
+          63.5868
+        ],
+        "display_name": "35, Årnsetveien, Strømmen, Årnsetlunden, Rissa, Indre Fosen, Trøndelag, 7100, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 53,
+      "navn": "Indre Namdal legevakt",
+      "input": {
+        "kommune": "Lierne, Raarvihke - Røyrvik, Namsskogan, Grong",
+        "adresse": "Blåklokkeveien 16",
+        "postnummer": "7870",
+        "poststed": "Grong"
+      },
+      "selected": {
+        "adresse": "Blåklokkevegen 16",
+        "postnummer": "7870",
+        "poststed": "GRONG",
+        "coordinates": [
+          12.310683978665665,
+          64.46326499064703
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          12.310683978665665,
+          64.46326499064703
+        ],
+        "address": "Blåklokkevegen 16",
+        "postnummer": "7870",
+        "poststed": "GRONG",
+        "kommunenavn": "GRONG",
+        "score": 10.706,
+        "address_ratio": 0.941,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 56,
+      "navn": "Innherred Interkommunale legevakt",
+      "input": {
+        "kommune": "Frosta, Levanger, Verdal, Inderøy",
+        "adresse": "Kirkegata 2D",
+        "postnummer": "7600",
+        "poststed": "Levanger"
+      },
+      "selected": {
+        "adresse": "Kirkegata 2D",
+        "postnummer": "7600",
+        "poststed": "LEVANGER",
+        "coordinates": [
+          11.286702802116485,
+          63.7419986985071
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          11.286702802116485,
+          63.7419986985071
+        ],
+        "address": "Kirkegata 2D",
+        "postnummer": "7600",
+        "poststed": "LEVANGER",
+        "kommunenavn": "LEVANGER",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 60,
+      "navn": "Karmøy legevakt",
+      "input": {
+        "kommune": "Karmøy",
+        "adresse": "Åkraveien 47",
+        "postnummer": "4270",
+        "poststed": "Åkrehamn"
+      },
+      "selected": {
+        "adresse": "Åkravegen 47",
+        "postnummer": "4270",
+        "poststed": "ÅKREHAMN",
+        "coordinates": [
+          5.201051013877701,
+          59.25793989993624
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.201051013877701,
+          59.25793989993624
+        ],
+        "address": "Åkravegen 47",
+        "postnummer": "4270",
+        "poststed": "ÅKREHAMN",
+        "kommunenavn": "KARMØY",
+        "score": 10.583,
+        "address_ratio": 0.917,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 61,
+      "navn": "Kautokeino legevakt",
+      "input": {
+        "kommune": "Guovdageaidnu - Kautokeino",
+        "adresse": "Sarritluodda 2",
+        "postnummer": "9520",
+        "poststed": "Kautokeino"
+      },
+      "selected": {
+        "adresse": "Sarritluodda 2",
+        "postnummer": "9520",
+        "poststed": "Kautokeino",
+        "coordinates": [
+          23.0299521,
+          69.0099148
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          23.0299521,
+          69.0099148
+        ],
+        "display_name": "2, Sarritluodda, Guovdageaidnu - Kautokeino, Kautokeino, Finnmark, 9520, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 64,
+      "navn": "Kongsvinger interkommunale legevakt",
+      "input": {
+        "kommune": "Kongsvinger, Nord-Odal, Sør-Odal, Eidskog, Grue",
+        "adresse": "Parkvegen 35",
+        "postnummer": "2212",
+        "poststed": "Kongsvinger"
+      },
+      "selected": {
+        "adresse": "Parkvegen 35",
+        "postnummer": "2212",
+        "poststed": "KONGSVINGER",
+        "coordinates": [
+          11.994021765073787,
+          60.19472607692582
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          11.994021765073787,
+          60.19472607692582
+        ],
+        "address": "Parkvegen 35",
+        "postnummer": "2212",
+        "poststed": "KONGSVINGER",
+        "kommunenavn": "KONGSVINGER",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 65,
+      "navn": "Kragerø legevakt",
+      "input": {
+        "kommune": "Kragerø",
+        "adresse": "Gamle Kragerøvei 32",
+        "postnummer": "3770",
+        "poststed": "Kragerø"
+      },
+      "selected": {
+        "adresse": "Gamle Kragerøvei 32",
+        "postnummer": "3770",
+        "poststed": "KRAGERØ",
+        "coordinates": [
+          9.405326270751763,
+          58.87972307850679
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          9.405326270751763,
+          58.87972307850679
+        ],
+        "address": "Gamle Kragerøvei 32",
+        "postnummer": "3770",
+        "poststed": "KRAGERØ",
+        "kommunenavn": "KRAGERØ",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          9.405327,
+          58.8797229
+        ],
+        "display_name": "32, Gamle Kragerøvei, Tangenheia, Lona, Kragerø, Telemark, 3770, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 68,
+      "navn": "Kvam legevakt",
+      "input": {
+        "kommune": "Kvam",
+        "adresse": "Nedre Norheim 44",
+        "postnummer": "5600",
+        "poststed": "Norheimsund"
+      },
+      "selected": {
+        "adresse": "Nedre Norheim 44",
+        "postnummer": "5600",
+        "poststed": "Norheimsund",
+        "coordinates": [
+          6.1507212,
+          60.3739819
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          6.1507212,
+          60.3739819
+        ],
+        "display_name": "Nedre Norheim, Tolo, Seljenes, Norheimsund, Kvam herad, Vestland, Norge",
+        "type": "residential"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 69,
+      "navn": "Kvinnherad legevakt",
+      "input": {
+        "kommune": "Kvinnherad",
+        "adresse": "Stølshaugvegen 3",
+        "postnummer": "5460",
+        "poststed": "Husnes"
+      },
+      "selected": {
+        "adresse": "Stølshaugvegen 3",
+        "postnummer": "5460",
+        "poststed": "Husnes",
+        "coordinates": [
+          5.744997,
+          59.85489
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          5.744997,
+          59.85489
+        ],
+        "display_name": "3, Stølshaugvegen, Røssland, Husnes, Kvinnherad, Vestland, 5460, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 70,
+      "navn": "Kvænangen legevakt",
+      "input": {
+        "kommune": "Kvænangen",
+        "adresse": "Burfjord",
+        "postnummer": "9161",
+        "poststed": "Burfjord"
+      },
+      "selected": {
+        "adresse": "Skoleveien 1",
+        "postnummer": "9161",
+        "poststed": "BURFJORD",
+        "coordinates": [
+          22.037140513508664,
+          69.93319982208797
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          22.037140513508664,
+          69.93319982208797
+        ],
+        "address": "Skoleveien 1",
+        "postnummer": "9161",
+        "poststed": "BURFJORD",
+        "kommunenavn": "KVÆNANGEN",
+        "score": 6.5,
+        "address_ratio": 0.1,
+        "confidence": "medium",
+        "ambiguous": true
+      },
+      "nominatim": {
+        "coordinates": [
+          22.0397812,
+          69.9339491
+        ],
+        "display_name": "Burfjord kirke, Stormoveien, Stormo, Burfjord, Kvænangen, Troms, 9161, Norge",
+        "type": "place_of_worship"
+      },
+      "coordinate_difference_m": 130.7,
+      "warnings": [
+        "ambiguous_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 72,
+      "navn": "Larvik legevakt",
+      "input": {
+        "kommune": "Larvik",
+        "adresse": "Greveveien 16",
+        "postnummer": "3257",
+        "poststed": "Larvik"
+      },
+      "selected": {
+        "adresse": "Greveveien 16",
+        "postnummer": "3257",
+        "poststed": "LARVIK",
+        "coordinates": [
+          10.035525219625624,
+          59.05319751985395
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.035525219625624,
+          59.05319751985395
+        ],
+        "address": "Greveveien 16",
+        "postnummer": "3257",
+        "poststed": "LARVIK",
+        "kommunenavn": "LARVIK",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          10.035525,
+          59.053198
+        ],
+        "display_name": "16, Greveveien, Byskogen, Larvik, Vestfold, 3257, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.1,
+      "warnings": []
+    },
+    {
+      "source_row": 73,
+      "navn": "Legevakten for Aremark og Halden",
+      "input": {
+        "kommune": "Halden, Aremark",
+        "adresse": "Kjærlighetsstien 30",
+        "postnummer": "1781",
+        "poststed": "Halden"
+      },
+      "selected": {
+        "adresse": "Kjærlighetsstien 30",
+        "postnummer": "1781",
+        "poststed": "HALDEN",
+        "coordinates": [
+          11.376111891652469,
+          59.12943012573901
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          11.376111891652469,
+          59.12943012573901
+        ],
+        "address": "Kjærlighetsstien 30",
+        "postnummer": "1781",
+        "poststed": "HALDEN",
+        "kommunenavn": "HALDEN",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 76,
+      "navn": "Leka legevakt",
+      "input": {
+        "kommune": "Leka",
+        "adresse": "Skeisveien 115",
+        "postnummer": "7994",
+        "poststed": "Leka"
+      },
+      "selected": {
+        "adresse": "Skeisveien 115",
+        "postnummer": "7994",
+        "poststed": "LEKA",
+        "coordinates": [
+          11.711750748232271,
+          65.08811989379791
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          11.711750748232271,
+          65.08811989379791
+        ],
+        "address": "Skeisveien 115",
+        "postnummer": "7994",
+        "poststed": "LEKA",
+        "kommunenavn": "LEKA",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          11.711751,
+          65.08812
+        ],
+        "display_name": "115, Skeisveien, Østby, Leka, Trøndelag, 7994, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 77,
+      "navn": "Lillehammer Interkommunale legevakt",
+      "input": {
+        "kommune": "Lillehammer, Ringebu, Øyer, Gausdal, Nord-Fron, Sør-Fron",
+        "adresse": "Anders Sandvigs gate 17",
+        "postnummer": "2609",
+        "poststed": "Lillehammer"
+      },
+      "selected": {
+        "adresse": "Anders Sandvigs gate 17",
+        "postnummer": "2609",
+        "poststed": "LILLEHAMMER",
+        "coordinates": [
+          10.473648978006418,
+          61.11243257455558
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.473648978006418,
+          61.11243257455558
+        ],
+        "address": "Anders Sandvigs gate 17",
+        "postnummer": "2609",
+        "poststed": "LILLEHAMMER",
+        "kommunenavn": "LILLEHAMMER",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 78,
+      "navn": "Lindesnes legevakt",
+      "input": {
+        "kommune": "Lindesnes",
+        "adresse": "Halseveien 5",
+        "postnummer": "4517",
+        "poststed": "Mandal"
+      },
+      "selected": {
+        "adresse": "Halseveien 5",
+        "postnummer": "4517",
+        "poststed": "Mandal",
+        "coordinates": [
+          7.4579514,
+          58.0300906
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          7.4579514,
+          58.0300906
+        ],
+        "display_name": "5, Halseveien, Sande, Oksevollen, Øvrebyen, Mandal, Lindesnes, Agder, 4517, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 80,
+      "navn": "Loppa legevakt",
+      "input": {
+        "kommune": "Loppa",
+        "adresse": "Hankenbakken 26",
+        "postnummer": "9550",
+        "poststed": "Øksfjord"
+      },
+      "selected": {
+        "adresse": "Hankenbakken 26",
+        "postnummer": "9550",
+        "poststed": "ØKSFJORD",
+        "coordinates": [
+          22.349567109096117,
+          70.24588748160419
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          22.349567109096117,
+          70.24588748160419
+        ],
+        "address": "Hankenbakken 26",
+        "postnummer": "9550",
+        "poststed": "ØKSFJORD",
+        "kommunenavn": "LOPPA",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          22.3495671,
+          70.2458875
+        ],
+        "display_name": "26, Hankenbakken, Øksfjord - Ákšovuotna, Loppa, Finnmark, 9550, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 81,
+      "navn": "Lunner og Gran legevakt",
+      "input": {
+        "kommune": "Gran, Lunner",
+        "adresse": "Morstadvegen 39",
+        "postnummer": "2750",
+        "poststed": "Gran"
+      },
+      "selected": {
+        "adresse": "Morstadvegen 39",
+        "postnummer": "2750",
+        "poststed": "GRAN",
+        "coordinates": [
+          10.577099812179629,
+          60.35071769196937
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.577099812179629,
+          60.35071769196937
+        ],
+        "address": "Morstadvegen 39",
+        "postnummer": "2750",
+        "poststed": "GRAN",
+        "kommunenavn": "GRAN",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 82,
+      "navn": "Lurøy legevakt",
+      "input": {
+        "kommune": "Lurøy",
+        "adresse": "Onøyveien 14",
+        "postnummer": "8766",
+        "poststed": "Lurøy"
+      },
+      "selected": {
+        "adresse": "Onøyveien 14",
+        "postnummer": "8766",
+        "poststed": "LURØY",
+        "coordinates": [
+          12.829497474789662,
+          66.39284959624369
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          12.829497474789662,
+          66.39284959624369
+        ],
+        "address": "Onøyveien 14",
+        "postnummer": "8766",
+        "poststed": "LURØY",
+        "kommunenavn": "LURØY",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          12.829497,
+          66.39285
+        ],
+        "display_name": "14, Onøyveien, Kyrvollen, Demmahågen, Lurøy, Nordland, 8766, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 83,
+      "navn": "Luster legevakt",
+      "input": {
+        "kommune": "Luster",
+        "adresse": "Luster legekontor",
+        "postnummer": "6868",
+        "poststed": "Gaupne"
+      },
+      "selected": {
+        "adresse": "Luster legekontor",
+        "postnummer": "6868",
+        "poststed": "Gaupne",
+        "coordinates": [
+          7.2964758,
+          61.4034872
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          7.2964758,
+          61.4034872
+        ],
+        "display_name": "Luster legekontor, Øyagata, Røneidgrandane, Ekrene, Gaupne, Luster, Vestland, 6868, Norge",
+        "type": "doctors"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 85,
+      "navn": "Meløy legevakt",
+      "input": {
+        "kommune": "Meløy",
+        "adresse": "Gammelveien 7",
+        "postnummer": "8150",
+        "poststed": "Ørnes"
+      },
+      "selected": {
+        "adresse": "Gammelveien 7",
+        "postnummer": "8150",
+        "poststed": "Ørnes",
+        "coordinates": [
+          13.708102,
+          66.873123
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          13.708102,
+          66.873123
+        ],
+        "display_name": "7, Gammelveien, Skipperbyen boligfelt, Øvre Mosvoll, Ørnes, Meløy, Nordland, 8150, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 86,
+      "navn": "Midtre Namdal legevakt",
+      "input": {
+        "kommune": "Namsos, Osen, Høylandet, Overhalla, Flatanger",
+        "adresse": "Pinavegen 14",
+        "postnummer": "7800",
+        "poststed": "Namsos"
+      },
+      "selected": {
+        "adresse": "Pinavegen 14",
+        "postnummer": "7800",
+        "poststed": "NAMSOS",
+        "coordinates": [
+          11.503753182406292,
+          64.46513739937812
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          11.503753182406292,
+          64.46513739937812
+        ],
+        "address": "Pinavegen 14",
+        "postnummer": "7800",
+        "poststed": "NAMSOS",
+        "kommunenavn": "NAMSOS",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 88,
+      "navn": "Mosseregionens legevakt",
+      "input": {
+        "kommune": "Moss, Råde, Våler (Viken), Vestby",
+        "adresse": "Peer Gynts vei 84",
+        "postnummer": "1535",
+        "poststed": "Moss"
+      },
+      "selected": {
+        "adresse": "Peer Gynts vei 84",
+        "postnummer": "1535",
+        "poststed": "MOSS",
+        "coordinates": [
+          10.696952542910987,
+          59.44624238186563
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.696952542910987,
+          59.44624238186563
+        ],
+        "address": "Peer Gynts vei 84",
+        "postnummer": "1535",
+        "poststed": "MOSS",
+        "kommunenavn": "MOSS",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 92,
+      "navn": "Nes legevakt",
+      "input": {
+        "kommune": "Nes",
+        "adresse": "Hagaskogvegen 17",
+        "postnummer": "2151",
+        "poststed": "Årnes"
+      },
+      "selected": {
+        "adresse": "Hagaskogvegen 17",
+        "postnummer": "2151",
+        "poststed": "Årnes",
+        "coordinates": [
+          11.477177,
+          60.119785
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          11.477177,
+          60.119785
+        ],
+        "display_name": "17, Hagaskogvegen, Årnes, Nes, Akershus, 2150, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 93,
+      "navn": "Nesna legevakt",
+      "input": {
+        "kommune": "Nesna",
+        "adresse": "Havneveien 18",
+        "postnummer": "8700",
+        "poststed": "Nesna"
+      },
+      "selected": {
+        "adresse": "Havnevegen 18",
+        "postnummer": "8700",
+        "poststed": "NESNA",
+        "coordinates": [
+          13.020376331498385,
+          66.20141072756195
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          13.020376331498385,
+          66.20141072756195
+        ],
+        "address": "Havnevegen 18",
+        "postnummer": "8700",
+        "poststed": "NESNA",
+        "kommunenavn": "NESNA",
+        "score": 10.615,
+        "address_ratio": 0.923,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 94,
+      "navn": "Nesodden legevakt",
+      "input": {
+        "kommune": "Nesodden",
+        "adresse": "Håkonkastet 25",
+        "postnummer": "1453",
+        "poststed": "Bjørnemyr"
+      },
+      "selected": {
+        "adresse": "Håkonskastet 25",
+        "postnummer": "1453",
+        "poststed": "BJØRNEMYR",
+        "coordinates": [
+          10.642639111188686,
+          59.83761385942527
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.642639111188686,
+          59.83761385942527
+        ],
+        "address": "Håkonskastet 25",
+        "postnummer": "1453",
+        "poststed": "BJØRNEMYR",
+        "kommunenavn": "NESODDEN",
+        "score": 10.828,
+        "address_ratio": 0.966,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 96,
+      "navn": "Nordfjord legevakt",
+      "input": {
+        "kommune": "Stad, Stryn",
+        "adresse": "Sjukehusvegen 14",
+        "postnummer": "6770",
+        "poststed": "Nordfjordeid"
+      },
+      "selected": {
+        "adresse": "Sjukehusvegen 14",
+        "postnummer": "6770",
+        "poststed": "NORDFJORDEID",
+        "coordinates": [
+          5.977804960687574,
+          61.91600725907146
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.977804960687574,
+          61.91600725907146
+        ],
+        "address": "Sjukehusvegen 14",
+        "postnummer": "6770",
+        "poststed": "NORDFJORDEID",
+        "kommunenavn": "STAD",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 97,
+      "navn": "Nord-Gudbrandsdal interkommunale legevakt",
+      "input": {
+        "kommune": "Dovre, Lesja, Skjåk, Lom, Vågå, Sel",
+        "adresse": "Selsvegen 20",
+        "postnummer": "2670",
+        "poststed": "Otta"
+      },
+      "selected": {
+        "adresse": "Slåvegen 20",
+        "postnummer": "2670",
+        "poststed": "OTTA",
+        "coordinates": [
+          9.488210763253628,
+          61.77713121201265
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          9.488210763253628,
+          61.77713121201265
+        ],
+        "address": "Slåvegen 20",
+        "postnummer": "2670",
+        "poststed": "OTTA",
+        "kommunenavn": "SEL",
+        "score": 10.348,
+        "address_ratio": 0.87,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 98,
+      "navn": "Nordhordland interkommunale legevakt",
+      "input": {
+        "kommune": "Modalen, Osterøy, Alver, Austrheim, Masfjorden, Gulen",
+        "adresse": "Kvassnesveien 40",
+        "postnummer": "5914",
+        "poststed": "Isdalstø"
+      },
+      "selected": {
+        "adresse": "Kvassnesvegen 40",
+        "postnummer": "5914",
+        "poststed": "ISDALSTØ",
+        "coordinates": [
+          5.2913603505441715,
+          60.54630048951606
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.2913603505441715,
+          60.54630048951606
+        ],
+        "address": "Kvassnesvegen 40",
+        "postnummer": "5914",
+        "poststed": "ISDALSTØ",
+        "kommunenavn": "ALVER",
+        "score": 10.688,
+        "address_ratio": 0.938,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 99,
+      "navn": "Nordkapp legevakt",
+      "input": {
+        "kommune": "Nordkapp",
+        "adresse": "Sykehusveien 16",
+        "postnummer": "9750",
+        "poststed": "Honningsvåg"
+      },
+      "selected": {
+        "adresse": "Sykehusveien 16A",
+        "postnummer": "9750",
+        "poststed": "HONNINGSVÅG",
+        "coordinates": [
+          25.985729971180092,
+          70.9768460665145
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          25.985729971180092,
+          70.9768460665145
+        ],
+        "address": "Sykehusveien 16A",
+        "postnummer": "9750",
+        "poststed": "HONNINGSVÅG",
+        "kommunenavn": "NORDKAPP",
+        "score": 10.839,
+        "address_ratio": 0.968,
+        "confidence": "high",
+        "ambiguous": true
+      },
+      "nominatim": {
+        "coordinates": [
+          25.9850516,
+          70.9770382
+        ],
+        "display_name": "16B, Sykehusveien, Holmen, Honningsvåg, Nordkapp, Finnmark, 9750, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 32.6,
+      "warnings": [
+        "ambiguous_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 101,
+      "navn": "Nordreisa legevakt",
+      "input": {
+        "kommune": "Nordreisa",
+        "adresse": "Sonjatunveien 21",
+        "postnummer": "9151",
+        "poststed": "Storslett"
+      },
+      "selected": {
+        "adresse": "Sonjatunvegen 21",
+        "postnummer": "9151",
+        "poststed": "STORSLETT",
+        "coordinates": [
+          21.035799728715322,
+          69.76639217566627
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          21.035799728715322,
+          69.76639217566627
+        ],
+        "address": "Sonjatunvegen 21",
+        "postnummer": "9151",
+        "poststed": "STORSLETT",
+        "kommunenavn": "NORDREISA",
+        "score": 10.688,
+        "address_ratio": 0.938,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 103,
+      "navn": "Nore og Uvdal legevakt",
+      "input": {
+        "kommune": "Nore og Uvdal",
+        "adresse": "Sentrum 16",
+        "postnummer": "3630",
+        "poststed": "Rødberg"
+      },
+      "selected": {
+        "adresse": "Sentrum 16",
+        "postnummer": "3630",
+        "poststed": "RØDBERG",
+        "coordinates": [
+          8.94684383696516,
+          60.267043446410575
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          8.94684383696516,
+          60.267043446410575
+        ],
+        "address": "Sentrum 16",
+        "postnummer": "3630",
+        "poststed": "RØDBERG",
+        "kommunenavn": "NORE OG UVDAL",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          8.9468433,
+          60.2670429
+        ],
+        "display_name": "16, Sentrum, Nordre Brugard, Rødberg, Nore og Uvdal, Buskerud, 3630, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.1,
+      "warnings": []
+    },
+    {
+      "source_row": 107,
+      "navn": "Oslo legevakt",
+      "input": {
+        "kommune": "Oslo",
+        "adresse": "Storgata 40",
+        "postnummer": "0182",
+        "poststed": "Oslo"
+      },
+      "selected": {
+        "adresse": "Storgata 40",
+        "postnummer": "0182",
+        "poststed": "OSLO",
+        "coordinates": [
+          10.758962840476272,
+          59.916843958558445
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.758962840476272,
+          59.916843958558445
+        ],
+        "address": "Storgata 40",
+        "postnummer": "0182",
+        "poststed": "OSLO",
+        "kommunenavn": "OSLO",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          10.758963,
+          59.916844
+        ],
+        "display_name": "40, Storgata, Grünerløkka, Oslo, 0182, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 108,
+      "navn": "Porsanger legevakt",
+      "input": {
+        "kommune": "Porsanger - Porsáŋgu - Porsanki",
+        "adresse": "Helsetunveien 2",
+        "postnummer": "9700",
+        "poststed": "Lakselv"
+      },
+      "selected": {
+        "adresse": "Helsetunveien 2",
+        "postnummer": "9700",
+        "poststed": "Lakselv",
+        "coordinates": [
+          24.9512114,
+          70.0520365
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          24.9512114,
+          70.0520365
+        ],
+        "display_name": "2, Helsetunveien, Smørstad, Lakselv, Porsanger, Finnmark, 9700, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 109,
+      "navn": "Porsgrunn legevakt",
+      "input": {
+        "kommune": "Porsgrunn",
+        "adresse": "Aallsgate 41",
+        "postnummer": "3922",
+        "poststed": "Porsgrunn"
+      },
+      "selected": {
+        "adresse": "Aallsgate 41",
+        "postnummer": "3922",
+        "poststed": "PORSGRUNN",
+        "coordinates": [
+          9.655122367474396,
+          59.1308555293635
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          9.655122367474396,
+          59.1308555293635
+        ],
+        "address": "Aallsgate 41",
+        "postnummer": "3922",
+        "poststed": "PORSGRUNN",
+        "kommunenavn": "PORSGRUNN",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          9.6551218,
+          59.1308554
+        ],
+        "display_name": "41, Aallsgate, Rønningen, Skrukkerød, Porsgrunn, Telemark, 3922, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 110,
+      "navn": "Rana interkommunale legevakt",
+      "input": {
+        "kommune": "Hemnes, Rana",
+        "adresse": "Sportsalleen 15",
+        "postnummer": "8613",
+        "poststed": "Mo i Rana"
+      },
+      "selected": {
+        "adresse": "Sportsalleen 15",
+        "postnummer": "8613",
+        "poststed": "MO I RANA",
+        "coordinates": [
+          14.186585985688279,
+          66.32521999376698
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          14.186585985688279,
+          66.32521999376698
+        ],
+        "address": "Sportsalleen 15",
+        "postnummer": "8613",
+        "poststed": "MO I RANA",
+        "kommunenavn": "RANA",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 111,
+      "navn": "Rauma legevakt",
+      "input": {
+        "kommune": "Rauma",
+        "adresse": "Vollan 8 A",
+        "postnummer": "6300",
+        "poststed": "Åndalsnes"
+      },
+      "selected": {
+        "adresse": "Vollan 8 A",
+        "postnummer": "6300",
+        "poststed": "Åndalsnes",
+        "coordinates": [
+          7.6862737,
+          62.5682454
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          7.6862737,
+          62.5682454
+        ],
+        "display_name": "8A, Vollan, Nes, Åndalsnes, Rauma, Møre og Romsdal, 6300, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 114,
+      "navn": "Rødøy legevakt",
+      "input": {
+        "kommune": "Rødøy",
+        "adresse": "Skolebakken 100",
+        "postnummer": "8186",
+        "poststed": "Tjong"
+      },
+      "selected": {
+        "adresse": "Skolebakken 100",
+        "postnummer": "8186",
+        "poststed": "Tjong",
+        "coordinates": [
+          13.4191587,
+          66.6955807
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          13.4191587,
+          66.6955807
+        ],
+        "display_name": "Skolebakken, Kila, Tjongsfjord, Rødøy, Nordland, 8186, Norge",
+        "type": "residential"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 115,
+      "navn": "Røros interkommunale legevakt",
+      "input": {
+        "kommune": "Røros, Holtålen, Os",
+        "adresse": "Henrik Grønns vei 25",
+        "postnummer": "7374",
+        "poststed": "Røros"
+      },
+      "selected": {
+        "adresse": "Henrik Grønns vei 25",
+        "postnummer": "7374",
+        "poststed": "RØROS",
+        "coordinates": [
+          11.378676759679447,
+          62.577134147975606
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          11.378676759679447,
+          62.577134147975606
+        ],
+        "address": "Henrik Grønns vei 25",
+        "postnummer": "7374",
+        "poststed": "RØROS",
+        "kommunenavn": "RØROS",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 117,
+      "navn": "Sandefjord legevakt",
+      "input": {
+        "kommune": "Sandefjord",
+        "adresse": "Bugårdsgt 9b",
+        "postnummer": "3208",
+        "poststed": "Sandefjord"
+      },
+      "selected": {
+        "adresse": "Bugårdsgata 9B",
+        "postnummer": "3208",
+        "poststed": "SANDEFJORD",
+        "coordinates": [
+          10.213316648905122,
+          59.13365914933078
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.213316648905122,
+          59.13365914933078
+        ],
+        "address": "Bugårdsgata 9B",
+        "postnummer": "3208",
+        "poststed": "SANDEFJORD",
+        "kommunenavn": "SANDEFJORD",
+        "score": 10.615,
+        "address_ratio": 0.923,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 120,
+      "navn": "Sauda legevakt",
+      "input": {
+        "kommune": "Sauda",
+        "adresse": "Åbødalsveien 79",
+        "postnummer": "4200",
+        "poststed": "Sauda"
+      },
+      "selected": {
+        "adresse": "Åbødalsveien 79",
+        "postnummer": "4200",
+        "poststed": "SAUDA",
+        "coordinates": [
+          6.363359067662583,
+          59.656031232052364
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.363359067662583,
+          59.656031232052364
+        ],
+        "address": "Åbødalsveien 79",
+        "postnummer": "4200",
+        "poststed": "SAUDA",
+        "kommunenavn": "SAUDA",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          6.3633592,
+          59.6560312
+        ],
+        "display_name": "79, Åbødalsveien, Åbødalen, Solbrekk, Sauda, Rogaland, 4200, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 122,
+      "navn": "Sirdal legevakt",
+      "input": {
+        "kommune": "Sirdal",
+        "adresse": "Josdalsveien 4",
+        "postnummer": "4440",
+        "poststed": "Tonstad"
+      },
+      "selected": {
+        "adresse": "Josdalsveien 4",
+        "postnummer": "4440",
+        "poststed": "Tonstad",
+        "coordinates": [
+          6.7180893,
+          58.6637219
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          6.7180893,
+          58.6637219
+        ],
+        "display_name": "4, Josdalsveien, Tonstadli, Tonstad, Sirdal, Agder, 4440, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 126,
+      "navn": "Sogndal legevakt",
+      "input": {
+        "kommune": "Sogndal",
+        "adresse": "Plassen 2",
+        "postnummer": "6856",
+        "poststed": "Sogndal"
+      },
+      "selected": {
+        "adresse": "Plassen 2",
+        "postnummer": "6856",
+        "poststed": "Sogndal",
+        "coordinates": [
+          7.097583,
+          61.231992
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          7.097583,
+          61.231992
+        ],
+        "display_name": "2, Plassen, Stedje, Foss, Sogndal, Vestland, 6856, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 128,
+      "navn": "Sotra legevakt",
+      "input": {
+        "kommune": "Øygarden",
+        "adresse": "Blombakkane 77",
+        "postnummer": "5354",
+        "poststed": "Straume"
+      },
+      "selected": {
+        "adresse": "Blombakkane 77",
+        "postnummer": "5354",
+        "poststed": "STRAUME",
+        "coordinates": [
+          5.118783487071742,
+          60.364937671980385
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.118783487071742,
+          60.364937671980385
+        ],
+        "address": "Blombakkane 77",
+        "postnummer": "5354",
+        "poststed": "STRAUME",
+        "kommunenavn": "ØYGARDEN",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          5.118783,
+          60.364938
+        ],
+        "display_name": "77, Blombakkane, Straume, Øygarden, Vestland, 5354, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 130,
+      "navn": "Steigen legevakt",
+      "input": {
+        "kommune": "Steigen",
+        "adresse": "Øyra",
+        "postnummer": "8283",
+        "poststed": "Leinesfjord"
+      },
+      "selected": {
+        "adresse": "Øyra 2",
+        "postnummer": "8283",
+        "poststed": "LEINESFJORD",
+        "coordinates": [
+          15.014640772405254,
+          67.77473791601717
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          15.014640772405254,
+          67.77473791601717
+        ],
+        "address": "Øyra 2",
+        "postnummer": "8283",
+        "poststed": "LEINESFJORD",
+        "kommunenavn": "STEIGEN",
+        "score": 10.0,
+        "address_ratio": 0.8,
+        "confidence": "high",
+        "ambiguous": true
+      },
+      "nominatim": {
+        "coordinates": [
+          15.0133742,
+          67.7747379
+        ],
+        "display_name": "Øyra, Myklebostad, Steigen, Nordland, Norge",
+        "type": "unclassified"
+      },
+      "coordinate_difference_m": 53.3,
+      "warnings": [
+        "ambiguous_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 132,
+      "navn": "Stor-Elvdal legevakt",
+      "input": {
+        "kommune": "Stor-Elvdal",
+        "adresse": "Storgata 103",
+        "postnummer": "2480",
+        "poststed": "Koppang"
+      },
+      "selected": {
+        "adresse": "Storgata 103A",
+        "postnummer": "2480",
+        "poststed": "KOPPANG",
+        "coordinates": [
+          11.048732375663727,
+          61.57058507992166
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          11.048732375663727,
+          61.57058507992166
+        ],
+        "address": "Storgata 103A",
+        "postnummer": "2480",
+        "poststed": "KOPPANG",
+        "kommunenavn": "STOR-ELVDAL",
+        "score": 10.8,
+        "address_ratio": 0.96,
+        "confidence": "high",
+        "ambiguous": true
+      },
+      "nominatim": {
+        "coordinates": [
+          11.0485966,
+          61.5706601
+        ],
+        "display_name": "103B, Storgata, Koppang, Stor-Elvdal, Innlandet, 2480, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 11.0,
+      "warnings": [
+        "ambiguous_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 133,
+      "navn": "Strand legevakt",
+      "input": {
+        "kommune": "Strand",
+        "adresse": "Jonsokberget 12",
+        "postnummer": "4100",
+        "poststed": "Jørpeland"
+      },
+      "selected": {
+        "adresse": "Jonsokberget 12",
+        "postnummer": "4100",
+        "poststed": "JØRPELAND",
+        "coordinates": [
+          6.045251341730278,
+          59.020007866246495
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.045251341730278,
+          59.020007866246495
+        ],
+        "address": "Jonsokberget 12",
+        "postnummer": "4100",
+        "poststed": "JØRPELAND",
+        "kommunenavn": "STRAND",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          6.0452507,
+          59.0200081
+        ],
+        "display_name": "12, Jonsokberget, Longaland, Svenskebyen, Jørpeland, Strand, Rogaland, 4100, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 134,
+      "navn": "Suldal legevakt",
+      "input": {
+        "kommune": "Suldal",
+        "adresse": "Eidsvegen 3",
+        "postnummer": "4230",
+        "poststed": "Sand"
+      },
+      "selected": {
+        "adresse": "Eidsvegen 3",
+        "postnummer": "4230",
+        "poststed": "Sand",
+        "coordinates": [
+          6.2534679,
+          59.4855986
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          6.2534679,
+          59.4855986
+        ],
+        "display_name": "3, Eidsvegen, Eide, Solbakken, Sand, Suldal, Rogaland, 4230, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 136,
+      "navn": "Sunnhordland interkommunale legevakt IKS",
+      "input": {
+        "kommune": "Bømlo, Stord, Fitjar",
+        "adresse": "Tysevegen 62",
+        "postnummer": "5416",
+        "poststed": "Stord"
+      },
+      "selected": {
+        "adresse": "Tysevegen 62",
+        "postnummer": "5416",
+        "poststed": "STORD",
+        "coordinates": [
+          5.512421666701212,
+          59.79199301328915
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.512421666701212,
+          59.79199301328915
+        ],
+        "address": "Tysevegen 62",
+        "postnummer": "5416",
+        "poststed": "STORD",
+        "kommunenavn": "STORD",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 137,
+      "navn": "Sykkylven-Stranda interkommunale legevakt",
+      "input": {
+        "kommune": "Sykkylven, Stranda",
+        "adresse": "Haugeneset 20",
+        "postnummer": "6230",
+        "poststed": "Sykkylven"
+      },
+      "selected": {
+        "adresse": "Haugneset 20",
+        "postnummer": "6230",
+        "poststed": "SYKKYLVEN",
+        "coordinates": [
+          6.575318713810543,
+          62.39060560762532
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.575318713810543,
+          62.39060560762532
+        ],
+        "address": "Haugneset 20",
+        "postnummer": "6230",
+        "poststed": "SYKKYLVEN",
+        "kommunenavn": "SYKKYLVEN",
+        "score": 10.8,
+        "address_ratio": 0.96,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 139,
+      "navn": "Sør-Varanger legevakt",
+      "input": {
+        "kommune": "Sør-Varanger",
+        "adresse": "Kirkenes Sykehus",
+        "postnummer": "9900",
+        "poststed": "Kirkenes"
+      },
+      "selected": {
+        "adresse": "Kirkenes Sykehus",
+        "postnummer": "9900",
+        "poststed": "Kirkenes",
+        "coordinates": [
+          30.0353641,
+          69.7070352
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          30.0353641,
+          69.7070352
+        ],
+        "display_name": "Kirkenes sykehus, Skytterhusveien, Skytterhusfjellet, Kirkenes, Sør-Varanger, Finnmark, 9900, Norge",
+        "type": "hospital"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 141,
+      "navn": "Tinn kommunale legevakt",
+      "input": {
+        "kommune": "Tinn",
+        "adresse": "Sykehusveien 6",
+        "postnummer": "3660",
+        "poststed": "Rjukan"
+      },
+      "selected": {
+        "adresse": "Sykehusveien 6",
+        "postnummer": "3660",
+        "poststed": "Rjukan",
+        "coordinates": [
+          8.604623,
+          59.880333
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          8.604623,
+          59.880333
+        ],
+        "display_name": "6, Sykehusveien, Einungdalen, Mæland, Rjukan, Tinn, Telemark, 3660, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 142,
+      "navn": "Tjeldsund - Evenes legevakt",
+      "input": {
+        "kommune": "Tjeldsund, Evenes",
+        "adresse": "Revegårdsveien 10",
+        "postnummer": "9440",
+        "poststed": "Evenskjer"
+      },
+      "selected": {
+        "adresse": "Revegårdsveien 10",
+        "postnummer": "9440",
+        "poststed": "EVENSKJER",
+        "coordinates": [
+          16.575980266084233,
+          68.5845684820954
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          16.575980266084233,
+          68.5845684820954
+        ],
+        "address": "Revegårdsveien 10",
+        "postnummer": "9440",
+        "poststed": "EVENSKJER",
+        "kommunenavn": "TJELDSUND",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 143,
+      "navn": "Tokke-Vinje legevakt",
+      "input": {
+        "kommune": "Tokke, Vinje",
+        "adresse": "Vinjevegen 212",
+        "postnummer": "3890",
+        "poststed": "Vinje"
+      },
+      "selected": {
+        "adresse": "Vinjevegen 212",
+        "postnummer": "3890",
+        "poststed": "VINJE",
+        "coordinates": [
+          7.98758774060612,
+          59.568617843399366
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          7.98758774060612,
+          59.568617843399366
+        ],
+        "address": "Vinjevegen 212",
+        "postnummer": "3890",
+        "poststed": "VINJE",
+        "kommunenavn": "VINJE",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 144,
+      "navn": "Tromsø legevakt",
+      "input": {
+        "kommune": "Tromsø",
+        "adresse": "Sykehusvegen 30",
+        "postnummer": "9019",
+        "poststed": "Tromsø"
+      },
+      "selected": {
+        "adresse": "Sykehusvegen 30",
+        "postnummer": "9019",
+        "poststed": "Tromsø",
+        "coordinates": [
+          18.9865302,
+          69.6838855
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          18.9865302,
+          69.6838855
+        ],
+        "display_name": "Sykehusvegen, Breivang, Gimle, Tromsø, Troms, 9019, Norge",
+        "type": "unclassified"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 146,
+      "navn": "Trysil legevakt",
+      "input": {
+        "kommune": "Trysil",
+        "adresse": "Lundevegen 3",
+        "postnummer": "2420",
+        "poststed": "Trysil"
+      },
+      "selected": {
+        "adresse": "Lundevegen 3",
+        "postnummer": "2420",
+        "poststed": "Trysil",
+        "coordinates": [
+          12.269016,
+          61.314375
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          12.269016,
+          61.314375
+        ],
+        "display_name": "3, Lundevegen, Kjellåsfeltet, Vestad, Trysil, Innlandet, 2420, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 147,
+      "navn": "Træna legevakt",
+      "input": {
+        "kommune": "Træna",
+        "adresse": "Leirtjønna 5",
+        "postnummer": "8770",
+        "poststed": "Træna"
+      },
+      "selected": {
+        "adresse": "Leirtjønna 5",
+        "postnummer": "8770",
+        "poststed": "Træna",
+        "coordinates": [
+          12.099081,
+          66.503752
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          12.099081,
+          66.503752
+        ],
+        "display_name": "5, Leirtjønna, Træna, Nordland, 8770, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 148,
+      "navn": "Tysnes legevakt",
+      "input": {
+        "kommune": "Tysnes",
+        "adresse": "Uggdalsvegen 301",
+        "postnummer": "5685",
+        "poststed": "Uggdal"
+      },
+      "selected": {
+        "adresse": "Uggdalsvegen 301",
+        "postnummer": "5685",
+        "poststed": "UGGDAL",
+        "coordinates": [
+          5.500031770921321,
+          60.005809480481815
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          5.500031770921321,
+          60.005809480481815
+        ],
+        "address": "Uggdalsvegen 301",
+        "postnummer": "5685",
+        "poststed": "UGGDAL",
+        "kommunenavn": "TYSNES",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          5.5000316,
+          60.0058097
+        ],
+        "display_name": "301, Uggdalsvegen, Jensvoll, To, Uggdalseidet, Tysnes, Vestland, 5685, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 149,
+      "navn": "Tønsbergregionen legevakt",
+      "input": {
+        "kommune": "Holmestrand, Tønsberg, Færder",
+        "adresse": "Kjellengveien 2b",
+        "postnummer": "3125",
+        "poststed": "Tønsberg"
+      },
+      "selected": {
+        "adresse": "Kjellengveien 2B",
+        "postnummer": "3125",
+        "poststed": "TØNSBERG",
+        "coordinates": [
+          10.397412450336232,
+          59.28473967173338
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          10.397412450336232,
+          59.28473967173338
+        ],
+        "address": "Kjellengveien 2B",
+        "postnummer": "3125",
+        "poststed": "TØNSBERG",
+        "kommunenavn": "TØNSBERG",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 150,
+      "navn": "Ullensvang legevakt",
+      "input": {
+        "kommune": "Ullensvang",
+        "adresse": "Sjukehusveien 10",
+        "postnummer": "5750",
+        "poststed": "Odda"
+      },
+      "selected": {
+        "adresse": "Sjukehusvegen 10",
+        "postnummer": "5750",
+        "poststed": "ODDA",
+        "coordinates": [
+          6.55016454127052,
+          60.058860280757614
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.55016454127052,
+          60.058860280757614
+        ],
+        "address": "Sjukehusvegen 10",
+        "postnummer": "5750",
+        "poststed": "ODDA",
+        "kommunenavn": "ULLENSVANG",
+        "score": 10.688,
+        "address_ratio": 0.938,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 152,
+      "navn": "Vadsø legevakt",
+      "input": {
+        "kommune": "Vadsø",
+        "adresse": "Vidjeveien 4",
+        "postnummer": "9803",
+        "poststed": "Vadsø"
+      },
+      "selected": {
+        "adresse": "Vidjeveien 4",
+        "postnummer": "9803",
+        "poststed": "Vadsø",
+        "coordinates": [
+          29.734643,
+          70.083202
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          29.734643,
+          70.083202
+        ],
+        "display_name": "4, Vidjeveien, Prestelvtorget, Vadsø, Finnmark, 9803, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 153,
+      "navn": "Valdres legevakt",
+      "input": {
+        "kommune": "Sør-Aurdal, Etnedal, Nord-Aurdal, Vestre Slidre, Øystre Slidre, Vang",
+        "adresse": "Garlivegen 20",
+        "postnummer": "2900",
+        "poststed": "Fagernes"
+      },
+      "selected": {
+        "adresse": "Garlivegen 20",
+        "postnummer": "2900",
+        "poststed": "FAGERNES",
+        "coordinates": [
+          9.242365072197167,
+          60.98664440162039
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          9.242365072197167,
+          60.98664440162039
+        ],
+        "address": "Garlivegen 20",
+        "postnummer": "2900",
+        "poststed": "FAGERNES",
+        "kommunenavn": "NORD-AURDAL",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 155,
+      "navn": "Vardø legevakt",
+      "input": {
+        "kommune": "Vardø",
+        "adresse": "Birger Dahls gate 9",
+        "postnummer": "9950",
+        "poststed": "Vardø"
+      },
+      "selected": {
+        "adresse": "Birger Dahls gate 9",
+        "postnummer": "9950",
+        "poststed": "Vardø",
+        "coordinates": [
+          31.092501,
+          70.373352
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          31.092501,
+          70.373352
+        ],
+        "display_name": "9, Birger Dahls gate, Østervågen, Vardø, Finnmark, 9952, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 157,
+      "navn": "Vega legevakt",
+      "input": {
+        "kommune": "Vega",
+        "adresse": "Torvåsmyra 1",
+        "postnummer": "8983",
+        "poststed": "Vega"
+      },
+      "selected": {
+        "adresse": "Torvåsmyra 1",
+        "postnummer": "8983",
+        "poststed": "Vega",
+        "coordinates": [
+          11.960302,
+          65.678637
+        ]
+      },
+      "geonorge": null,
+      "nominatim": {
+        "coordinates": [
+          11.960302,
+          65.678637
+        ],
+        "display_name": "1, Torvåsmyra, Høgåsen, Kolstad, Gladstad, Vega, Nordland, 8983, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_geonorge_match"
+      ]
+    },
+    {
+      "source_row": 158,
+      "navn": "Vennesla og Iveland legevakt",
+      "input": {
+        "kommune": "Iveland, Vennesla",
+        "adresse": "Sentrumsveien 41",
+        "postnummer": "4700",
+        "poststed": "Vennesla"
+      },
+      "selected": {
+        "adresse": "Sentrumsvegen 41",
+        "postnummer": "4700",
+        "poststed": "VENNESLA",
+        "coordinates": [
+          7.9735576137979365,
+          58.267282878352916
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          7.9735576137979365,
+          58.267282878352916
+        ],
+        "address": "Sentrumsvegen 41",
+        "postnummer": "4700",
+        "poststed": "VENNESLA",
+        "kommunenavn": "VENNESLA",
+        "score": 10.688,
+        "address_ratio": 0.938,
+        "confidence": "high",
+        "ambiguous": true
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "ambiguous_geonorge_match",
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 160,
+      "navn": "Vevelstad legevakt",
+      "input": {
+        "kommune": "Vevelstad",
+        "adresse": "Forvikveien 160",
+        "postnummer": "8976",
+        "poststed": "Vevelstad"
+      },
+      "selected": {
+        "adresse": "Forvikveien 160",
+        "postnummer": "8976",
+        "poststed": "VEVELSTAD",
+        "coordinates": [
+          12.452979211479045,
+          65.70762092664722
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          12.452979211479045,
+          65.70762092664722
+        ],
+        "address": "Forvikveien 160",
+        "postnummer": "8976",
+        "poststed": "VEVELSTAD",
+        "kommunenavn": "VEVELSTAD",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          12.4529792,
+          65.7076209
+        ],
+        "display_name": "160, Forvikveien, Elvbakken, Vevelstad, Nordland, 8976, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 161,
+      "navn": "Vik legevakt",
+      "input": {
+        "kommune": "Vik",
+        "adresse": "Flatbygdi 10",
+        "postnummer": "6893",
+        "poststed": "Vik"
+      },
+      "selected": {
+        "adresse": "Flatbygdi 10",
+        "postnummer": "6893",
+        "poststed": "VIK I SOGN",
+        "coordinates": [
+          6.579257149827628,
+          61.08257735234573
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.579257149827628,
+          61.08257735234573
+        ],
+        "address": "Flatbygdi 10",
+        "postnummer": "6893",
+        "poststed": "VIK I SOGN",
+        "kommunenavn": "VIK",
+        "score": 10.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          6.579257,
+          61.082577
+        ],
+        "display_name": "10, Flatbygdi, Røysane, Grov, Vikøyri, Vik, Vestland, 6893, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 162,
+      "navn": "Voss interkommunale legevakt",
+      "input": {
+        "kommune": "Eidfjord, Ulvik, Voss, Vaksdal",
+        "adresse": "Sjukehusvegen 16",
+        "postnummer": "5704",
+        "poststed": "Voss"
+      },
+      "selected": {
+        "adresse": "Sjukehusvegen 16",
+        "postnummer": "5704",
+        "poststed": "VOSS",
+        "coordinates": [
+          6.420393147888312,
+          60.63305156209196
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.420393147888312,
+          60.63305156209196
+        ],
+        "address": "Sjukehusvegen 16",
+        "postnummer": "5704",
+        "poststed": "VOSS",
+        "kommunenavn": "VOSS",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 164,
+      "navn": "Værøy legevakt",
+      "input": {
+        "kommune": "Værøy",
+        "adresse": "Sponga 14",
+        "postnummer": "8063",
+        "poststed": "Værøy"
+      },
+      "selected": {
+        "adresse": "Sponga 14",
+        "postnummer": "8063",
+        "poststed": "VÆRØY",
+        "coordinates": [
+          12.698171578941379,
+          67.6662702585155
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          12.698171578941379,
+          67.6662702585155
+        ],
+        "address": "Sponga 14",
+        "postnummer": "8063",
+        "poststed": "VÆRØY",
+        "kommunenavn": "VÆRØY",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": {
+        "coordinates": [
+          12.698172,
+          67.66627
+        ],
+        "display_name": "14, Sponga, Vågstranda, Sponga, Sørland, Værøy, Nordland, 8063, Norge",
+        "type": "house"
+      },
+      "coordinate_difference_m": 0.0,
+      "warnings": []
+    },
+    {
+      "source_row": 166,
+      "navn": "Ørskog legevakt",
+      "input": {
+        "kommune": "Vestnes, Fjord",
+        "adresse": "Sjøholtvegen 86",
+        "postnummer": "6240",
+        "poststed": "Ørskog"
+      },
+      "selected": {
+        "adresse": "Sjøholtvegen 86",
+        "postnummer": "6240",
+        "poststed": "ØRSKOG",
+        "coordinates": [
+          6.831147196585867,
+          62.48232062239786
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.831147196585867,
+          62.48232062239786
+        ],
+        "address": "Sjøholtvegen 86",
+        "postnummer": "6240",
+        "poststed": "ØRSKOG",
+        "kommunenavn": "ÅLESUND",
+        "score": 11.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 167,
+      "navn": "Øvre Hallingdal legevakt/Hallingdal nattlevevakt",
+      "input": {
+        "kommune": "Nesbyen, Ål",
+        "adresse": "Helsetunvn 17",
+        "postnummer": "3570",
+        "poststed": "Ål"
+      },
+      "selected": {
+        "adresse": "Helsetunvegen 17",
+        "postnummer": "3570",
+        "poststed": "ÅL",
+        "coordinates": [
+          8.566961524836245,
+          60.63090018224814
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          8.566961524836245,
+          60.63090018224814
+        ],
+        "address": "Helsetunvegen 17",
+        "postnummer": "3570",
+        "poststed": "ÅL",
+        "kommunenavn": "ÅL",
+        "score": 10.483,
+        "address_ratio": 0.897,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    },
+    {
+      "source_row": 168,
+      "navn": "Ålesund legevakt",
+      "input": {
+        "kommune": "Ålesund, Sula",
+        "adresse": "Åsesvingen 16",
+        "postnummer": "6017",
+        "poststed": "Ålesund"
+      },
+      "selected": {
+        "adresse": "Åsesvingen 16",
+        "postnummer": "6017",
+        "poststed": "ÅLESUND",
+        "coordinates": [
+          6.308555870538907,
+          62.46435016313758
+        ]
+      },
+      "geonorge": {
+        "coordinates": [
+          6.308555870538907,
+          62.46435016313758
+        ],
+        "address": "Åsesvingen 16",
+        "postnummer": "6017",
+        "poststed": "ÅLESUND",
+        "kommunenavn": "ÅLESUND",
+        "score": 12.0,
+        "address_ratio": 1.0,
+        "confidence": "high",
+        "ambiguous": false
+      },
+      "nominatim": null,
+      "coordinate_difference_m": null,
+      "warnings": [
+        "missing_nominatim_match"
+      ]
+    }
+  ]
+}

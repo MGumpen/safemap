@@ -587,7 +587,6 @@ async function loadHospitals() {
           <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: bold; color: #c0392b;">
             ${props.navn}
           </h3>
-          <p style="margin: 5px 0; font-size: 12px;"><strong>Type:</strong> ${props.type}</p>
           <p style="margin: 5px 0; font-size: 12px;"><strong>Kommune:</strong> ${props.kommune}</p>
         </div>
       `;
