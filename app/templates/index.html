@@ -4,9 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Safemap</title>
+    <!--
+    <changeLog>
+      <change date="2026-02-23" author="Codex">
+        <summary>La til proj4-bibliotek for visning av tilfluktsrom-koordinater fra API.</summary>
+        <details>
+          <item>main.js transformerer shelter-koordinater fra EPSG:25833 til WGS84 ved rendering.</item>
+        </details>
+      </change>
+    </changeLog>
+    -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
   </head>
 
   <body>
