@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/proj4@2.12.1/dist/proj4.js"></script>
   </head>
 
   <body>
@@ -49,6 +48,33 @@
           </tr>
         </tbody>
       </table>
+      
+      <div class="layer-controls__divider"></div>
+      
+      <div class="layer-controls__title">Avstandsfilter</div>
+      <div class="distance-filter">
+        <div class="distance-filter__controls">
+          <label for="distance-radius" class="distance-filter__label">
+            Radius: <span id="distance-value">5</span> km
+          </label>
+          <input 
+            id="distance-radius" 
+            type="range" 
+            min="1" 
+            max="50" 
+            value="5" 
+            step="1"
+            class="distance-filter__slider"
+          />
+        </div>
+        <button id="apply-distance-filter" class="distance-filter__button">
+          Søk nær min posisjon
+        </button>
+        <button id="clear-distance-filter" class="distance-filter__button distance-filter__button--secondary" style="display: none;">
+          Fjern filter
+        </button>
+        <div id="distance-filter-results" class="distance-filter__results"></div>
+      </div>
     </aside>
     <div id="map"></div>
     <script src="/static/js/main.js?v=1"></script>
