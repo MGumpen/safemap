@@ -22,6 +22,37 @@ console.log("Safemap landing page loaded");
       <item>Håndterer både EPSG:25833 og allerede-WGS84 koordinater.</item>
     </details>
   </change>
+  <change date="2026-02-23" author="Codex">
+    <summary>Reetablerte avstandsfilter (radius) etter branch-regresjon.</summary>
+    <details>
+      <item>Implementerte slider + apply/clear + resultatvisning.</item>
+      <item>Filtrerer markører mot brukerposisjon med Haversine-avstand.</item>
+      <item>Oppdaterer filter ved nye data og ved oppdatert brukerposisjon.</item>
+    </details>
+  </change>
+  <change date="2026-02-23" author="Codex">
+    <summary>Gjorde radius-filteret synlig og brukbart uten geolokasjon.</summary>
+    <details>
+      <item>Viser alltid resultattekst ved aktivt filter.</item>
+      <item>Faller tilbake til kartets sentrum når brukerposisjon mangler.</item>
+    </details>
+  </change>
+  <change date="2026-02-23" author="Codex">
+    <summary>Rettet radius-resultatliste slik at den viser faktiske treff innenfor radius.</summary>
+    <details>
+      <item>Legger label-metadata på markører ved lasting av alle datalag.</item>
+      <item>Bygger resultatliste per kategori med sortering på avstand.</item>
+      <item>Gjeninnførte detaljert visning i distance-filter-results i stedet for kun tellelinje.</item>
+    </details>
+  </change>
+  <change date="2026-02-23" author="Codex">
+    <summary>La til scroll og lukkeknapp i radius-resultatlisten.</summary>
+    <details>
+      <item>Resultatlisten rendres nå med header + lukkeknapp øverst til høyre.</item>
+      <item>Trefflisten ligger i egen scroll-bar container for lange resultater.</item>
+      <item>Skjuling av listen påvirker ikke aktivt radiusfilter på kartet.</item>
+    </details>
+  </change>
 </changeLog>
 */
 
@@ -36,6 +67,10 @@ let hasUserCentered = false;
 // Variable to store user location circle
 let userLocationCircle = null;
 let currentUserPosition = null;
+let distanceFilterCircle = null;
+let distanceFilterActive = false;
+let distanceFilterRadiusKm = 5;
+let distanceFilterResultsHidden = false;
 
 const updateUserLocation = (lat, lng, accuracy, shouldCenter = false) => {
   // Update current user position for distance filtering
@@ -58,6 +93,10 @@ const updateUserLocation = (lat, lng, accuracy, shouldCenter = false) => {
     opacity: 1,
     fillOpacity: 0.8
   }).addTo(map).bindPopup('Din nåværende lokasjon');
+
+  if (distanceFilterActive) {
+    applyDistanceFilter(distanceFilterRadiusKm);
+  }
 };
 
 // Try to get and watch user's current location
@@ -158,6 +197,11 @@ let activeSuggestions = [];
 let addressSearchTimer = null;
 let activeController = null;
 let fromSelection = null;
+const distanceRadiusInput = document.getElementById('distance-radius');
+const distanceValueLabel = document.getElementById('distance-value');
+const applyDistanceFilterButton = document.getElementById('apply-distance-filter');
+const clearDistanceFilterButton = document.getElementById('clear-distance-filter');
+const distanceFilterResults = document.getElementById('distance-filter-results');
 
 const formatRouteDistance = (distanceMeters) => {
   const km = Number(distanceMeters) / 1000;
@@ -165,6 +209,236 @@ const formatRouteDistance = (distanceMeters) => {
   if (km >= 100) return `${km.toFixed(0)} km`;
   if (km >= 10) return `${km.toFixed(1)} km`;
   return `${km.toFixed(2)} km`;
+};
+
+const toRadians = (value) => (value * Math.PI) / 180;
+
+const haversineKm = (from, to) => {
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(to.lat - from.lat);
+  const dLon = toRadians(to.lon - from.lon);
+  const fromLat = toRadians(from.lat);
+  const toLat = toRadians(to.lat);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(fromLat) * Math.cos(toLat) * Math.sin(dLon / 2) ** 2;
+  return 2 * earthRadiusKm * Math.asin(Math.sqrt(a));
+};
+
+const setMarkerVisibility = (marker, visible) => {
+  if (!marker || typeof marker.setOpacity !== 'function') return;
+  marker.setOpacity(visible ? 1 : 0);
+  const element = marker.getElement ? marker.getElement() : null;
+  if (element) {
+    element.style.pointerEvents = visible ? 'auto' : 'none';
+  }
+  if (!visible && marker.closePopup) {
+    marker.closePopup();
+  }
+};
+
+const setMarkerFilterLabel = (marker, label) => {
+  if (!marker) return;
+  const normalized = String(label || '').trim();
+  marker._safeMapFilterLabel = normalized || 'Ukjent';
+};
+
+const getMarkerFilterLabel = (marker, fallback) => {
+  const markerLabel = marker?._safeMapFilterLabel;
+  if (typeof markerLabel === 'string' && markerLabel.trim()) return markerLabel.trim();
+  const popupContent = marker?.getPopup?.()?.getContent?.();
+  if (typeof popupContent === 'string' && popupContent.trim() && !popupContent.includes('<')) {
+    return popupContent.trim();
+  }
+  return fallback;
+};
+
+const escapeHtml = (text) => String(text ?? '')
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#39;');
+
+const distanceResultCategories = [
+  { key: 'hospitals', label: 'Sykehus', icon: 'S', color: '#c0392b' },
+  { key: 'legevakt', label: 'Legevakter', icon: 'L', color: '#27ae60' },
+  { key: 'brannstasjoner', label: 'Brannstasjoner', icon: 'B', color: '#f77f00' },
+  { key: 'shelters', label: 'Tilfluktsrom', icon: 'T', color: '#d97706' }
+];
+
+const formatDistanceKm = (distanceKm) => {
+  if (!Number.isFinite(distanceKm)) return '';
+  if (distanceKm >= 10) return distanceKm.toFixed(1);
+  return distanceKm.toFixed(2);
+};
+
+const setDistanceFilterResultsVisibility = (visible) => {
+  if (!distanceFilterResults) return;
+  distanceFilterResults.classList.toggle('visible', visible);
+};
+
+const updateDistanceFilterResults = (matchesByCategory, radiusKm, usedMapCenterFallback) => {
+  if (!distanceFilterResults) return;
+  const total = distanceResultCategories.reduce(
+    (sum, category) => sum + (matchesByCategory[category.key]?.length || 0),
+    0
+  );
+  const suffix = usedMapCenterFallback ? ' (basert på kartets sentrum)' : '';
+  const summary = `Funnet ${total} objekt${total !== 1 ? 'er' : ''} innenfor ${radiusKm} km${suffix}`;
+  let bodyHtml = '';
+
+  if (total === 0) {
+    bodyHtml = '<div class="distance-filter__results-item">Ingen treff i valgt radius.</div>';
+  } else {
+    distanceResultCategories.forEach((category) => {
+      const items = matchesByCategory[category.key] || [];
+      if (!items.length) return;
+
+      bodyHtml += `<div class="distance-filter__results-category" style="color: ${category.color};">${category.icon} ${category.label} (${items.length})</div>`;
+
+      items.forEach((item) => {
+        bodyHtml += `<div class="distance-filter__results-item">${escapeHtml(item.label)} - <strong>${formatDistanceKm(item.distanceKm)} km</strong></div>`;
+      });
+    });
+  }
+
+  distanceFilterResults.innerHTML = `
+    <div class="distance-filter__results-header">
+      <div class="distance-filter__results-title">${escapeHtml(summary)}</div>
+      <button
+        type="button"
+        class="distance-filter__results-close"
+        aria-label="Skjul resultatlisten"
+        title="Skjul listen"
+      >
+        ×
+      </button>
+    </div>
+    <div class="distance-filter__results-body">
+      ${bodyHtml}
+    </div>
+  `;
+  setDistanceFilterResultsVisibility(!distanceFilterResultsHidden);
+};
+
+const applyDistanceFilter = (radiusKm, options = {}) => {
+  const { revealResults = false } = options;
+  distanceFilterRadiusKm = radiusKm;
+  if (revealResults) {
+    distanceFilterResultsHidden = false;
+  }
+  const filterOrigin = currentUserPosition || { lat: map.getCenter().lat, lon: map.getCenter().lng };
+
+  const matchesByCategory = { hospitals: [], legevakt: [], brannstasjoner: [], shelters: [] };
+  const groups = [
+    { key: 'hospitals', group: layers.hospitals, fallbackLabel: 'Sykehus' },
+    { key: 'legevakt', group: layers.legevakt, fallbackLabel: 'Legevakt' },
+    { key: 'brannstasjoner', group: layers.brannstasjoner, fallbackLabel: 'Brannstasjon' },
+    { key: 'shelters', group: layers.shelters, fallbackLabel: 'Tilfluktsrom' }
+  ];
+
+  groups.forEach(({ key, group, fallbackLabel }) => {
+    group.eachLayer((layer) => {
+      if (!layer.getLatLng) return;
+      const latLng = layer.getLatLng();
+      const distanceKm = haversineKm(filterOrigin, { lat: latLng.lat, lon: latLng.lng });
+      const visible = distanceKm <= radiusKm;
+      setMarkerVisibility(layer, visible);
+      if (!visible) return;
+
+      matchesByCategory[key].push({
+        label: getMarkerFilterLabel(layer, fallbackLabel),
+        distanceKm
+      });
+    });
+  });
+
+  Object.values(matchesByCategory).forEach((items) => {
+    items.sort((a, b) => a.distanceKm - b.distanceKm);
+  });
+
+  if (distanceFilterCircle) {
+    map.removeLayer(distanceFilterCircle);
+  }
+  distanceFilterCircle = L.circle([filterOrigin.lat, filterOrigin.lon], {
+    radius: radiusKm * 1000,
+    color: '#2563eb',
+    weight: 2,
+    fillColor: '#60a5fa',
+    fillOpacity: 0.08
+  }).addTo(map);
+
+  distanceFilterActive = true;
+  if (clearDistanceFilterButton) clearDistanceFilterButton.style.display = 'inline-flex';
+  updateDistanceFilterResults(matchesByCategory, radiusKm, !currentUserPosition);
+};
+
+const clearDistanceFilter = () => {
+  [layers.hospitals, layers.legevakt, layers.brannstasjoner, layers.shelters].forEach((group) => {
+    group.eachLayer((layer) => {
+      setMarkerVisibility(layer, true);
+    });
+  });
+  if (distanceFilterCircle) {
+    map.removeLayer(distanceFilterCircle);
+    distanceFilterCircle = null;
+  }
+  distanceFilterActive = false;
+  distanceFilterResultsHidden = false;
+  if (distanceFilterResults) {
+    distanceFilterResults.innerHTML = '';
+    setDistanceFilterResultsVisibility(false);
+  }
+  if (clearDistanceFilterButton) clearDistanceFilterButton.style.display = 'none';
+};
+
+const refreshDistanceFilterIfActive = () => {
+  if (distanceFilterActive) {
+    applyDistanceFilter(distanceFilterRadiusKm);
+  }
+};
+
+const initializeDistanceFilterControls = () => {
+  if (distanceRadiusInput) {
+    const initialValue = Number(distanceRadiusInput.value || 5);
+    if (Number.isFinite(initialValue)) {
+      distanceFilterRadiusKm = initialValue;
+      if (distanceValueLabel) distanceValueLabel.textContent = String(initialValue);
+    }
+    distanceRadiusInput.addEventListener('input', (event) => {
+      const value = Number(event.target.value);
+      if (!Number.isFinite(value)) return;
+      distanceFilterRadiusKm = value;
+      if (distanceValueLabel) distanceValueLabel.textContent = String(value);
+      if (distanceFilterActive) {
+        applyDistanceFilter(value, { revealResults: true });
+      }
+    });
+  }
+
+  if (applyDistanceFilterButton) {
+    applyDistanceFilterButton.addEventListener('click', () => {
+      applyDistanceFilter(distanceFilterRadiusKm, { revealResults: true });
+    });
+  }
+
+  if (clearDistanceFilterButton) {
+    clearDistanceFilterButton.addEventListener('click', () => {
+      clearDistanceFilter();
+    });
+  }
+
+  if (distanceFilterResults) {
+    distanceFilterResults.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const closeButton = target.closest('.distance-filter__results-close');
+      if (!closeButton) return;
+      event.preventDefault();
+      distanceFilterResultsHidden = true;
+      setDistanceFilterResultsVisibility(false);
+    });
+  }
 };
 
 const clearSuggestions = (target) => {
@@ -491,9 +765,11 @@ const fireStationIcon = (size = 32) => L.divIcon({
 const addStationToMap = (row) => {
   const coords = findLatLng(row);
   if (!coords || Number.isNaN(coords.lat) || Number.isNaN(coords.lng)) return;
-  L.marker([coords.lat, coords.lng], { icon: fireStationIcon(getMarkerSize(map.getZoom())) })
+  const stationLabel = labelForRow(row);
+  const marker = L.marker([coords.lat, coords.lng], { icon: fireStationIcon(getMarkerSize(map.getZoom())) })
     .addTo(markers)
-    .bindPopup(labelForRow(row));
+    .bindPopup(stationLabel);
+  setMarkerFilterLabel(marker, stationLabel);
 };
 
 const updateMarkerSizes = () => {
@@ -535,6 +811,7 @@ const loadStations = async () => {
     const data = await res.json();
     if (Array.isArray(data)) {
       data.forEach(addStationToMap);
+      refreshDistanceFilterIfActive();
       if (!hasUserCentered && markers.getLayers().length > 0) {
         map.fitBounds(markers.getBounds().pad(0.2));
       }
@@ -555,6 +832,7 @@ initLayerToggle('layer-tilfluktsrom', layers.shelters);
 applyLayerVisibility();
 
 map.on('zoomend', updateMarkerSizes);
+initializeDistanceFilterControls();
 
 // Beholder standard zoomkontroller
 
@@ -619,6 +897,7 @@ async function loadHospitals() {
     data.features.forEach(feature => {
       const coords = feature.geometry.coordinates;
       const props = feature.properties;
+      const hospitalLabel = props.navn || props.name || 'Sykehus';
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
       const marker = L.marker([coords[1], coords[0]], {
@@ -638,7 +917,9 @@ async function loadHospitals() {
       `;
       
       marker.bindPopup(popupContent);
+      setMarkerFilterLabel(marker, hospitalLabel);
     });
+    refreshDistanceFilterIfActive();
     
     console.log(`Viser ${hospitalCount} sykehus på kartet`);
     
@@ -676,6 +957,7 @@ async function loadLegevakter(hospitalCount) {
     data.features.forEach(feature => {
       const coords = feature.geometry.coordinates;
       const props = feature.properties;
+      const legevaktLabel = props.navn || props.adresse || 'Legevakt';
       
       // GeoJSON uses [lon, lat], Leaflet uses [lat, lon]
       const marker = L.marker([coords[1], coords[0]], {
@@ -697,7 +979,9 @@ async function loadLegevakter(hospitalCount) {
       `;
       
       marker.bindPopup(popupContent);
+      setMarkerFilterLabel(marker, legevaktLabel);
     });
+    refreshDistanceFilterIfActive();
     
     console.log(`Viser ${legevaktCount} legevakter på kartet`);
     
@@ -774,6 +1058,7 @@ const loadShelters = async () => {
       }
       const { lat, lon } = converted;
       const props = feature.properties || {};
+      const shelterLabel = props.adresse || props.navn || 'Tilfluktsrom';
       
       const popup = `
         <div style="min-width: 200px;">
@@ -785,13 +1070,15 @@ const loadShelters = async () => {
         </div>
       `;
       
-      L.marker([lat, lon], { icon: shelterIcon(getShelterSize(map.getZoom())) })
+      const marker = L.marker([lat, lon], { icon: shelterIcon(getShelterSize(map.getZoom())) })
         .addTo(layers.shelters)
         .bindPopup(popup);
+      setMarkerFilterLabel(marker, shelterLabel);
 
       shelterCount += 1;
       bounds.push([lat, lon]);
     });
+    refreshDistanceFilterIfActive();
     
     console.log(`Viser ${shelterCount} tilfluktsrom på kartet`);
     
