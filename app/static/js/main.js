@@ -1,4 +1,15 @@
 console.log("Safemap landing page loaded");
+/*
+<changeLog>
+  <change date="2026-02-23" author="Codex">
+    <summary>Tilfluktsrom hentes nå fra backend-endepunktet /api/shelters (Geonorge API) i stedet for lokal fil.</summary>
+    <details>
+      <item>Fjernet direkte fetch mot /static/Tilfluktsrom.json.</item>
+      <item>Beholder transformasjon fra EPSG:25833 til EPSG:4326 før plotting i kartet.</item>
+    </details>
+  </change>
+</changeLog>
+*/
 
 // Default fallback location (UiA)
 const DEFAULT_LOCATION = [58.1456, 8.0119];
@@ -699,11 +710,16 @@ loadHospitals();
 // Load shelter data (GeoJSON in EPSG:25833) and plot on the map
 proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
 
-fetch("/static/Tilfluktsrom.json")
-  .then((response) => response.json())
-  .then((geojson) => {
-    const bounds = [];
+const loadShelters = async () => {
+  try {
+    const response = await fetch('/api/shelters');
+    if (!response.ok) throw new Error(`API-feil: ${response.status}`);
+    const geojson = await response.json();
+    if (!geojson || !Array.isArray(geojson.features)) {
+      throw new Error('Ugyldig GeoJSON fra /api/shelters');
+    }
 
+    const bounds = [];
     geojson.features.forEach((feature) => {
       if (!feature.geometry || feature.geometry.type !== "Point") {
         return;
@@ -723,14 +739,15 @@ fetch("/static/Tilfluktsrom.json")
         .addTo(layers.shelters)
         .bindPopup(popup);
 
-
       bounds.push([lat, lon]);
     });
 
     if (!hasUserCentered && bounds.length > 0) {
       map.fitBounds(bounds, { padding: [20, 20] });
     }
-  })
-  .catch((error) => {
-    console.error("Klarte ikke a laste tilfluktsrom-data:", error);
-  });
+  } catch (error) {
+    console.error("Klarte ikke å laste tilfluktsrom-data fra API:", error);
+  }
+};
+
+loadShelters();
