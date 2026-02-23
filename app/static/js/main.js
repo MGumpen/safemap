@@ -8,6 +8,20 @@ console.log("Safemap landing page loaded");
       <item>Beholder transformasjon fra EPSG:25833 til EPSG:4326 før plotting i kartet.</item>
     </details>
   </change>
+  <change date="2026-02-23" author="Codex">
+    <summary>Rettet branch-regresjon i visning av tilfluktsrom fra API.</summary>
+    <details>
+      <item>Transformerer igjen koordinater fra EPSG:25833 til EPSG:4326 før plotting.</item>
+      <item>La til korrekt opptelling av shelters i logg.</item>
+    </details>
+  </change>
+  <change date="2026-02-23" author="Codex">
+    <summary>Gjorde shelter-rendering mer robust.</summary>
+    <details>
+      <item>Validerer at proj4 finnes før EPSG-transformasjon.</item>
+      <item>Håndterer både EPSG:25833 og allerede-WGS84 koordinater.</item>
+    </details>
+  </change>
 </changeLog>
 */
 
@@ -712,7 +726,30 @@ async function loadLegevakter(hospitalCount) {
 loadHospitals();
 
 // Load shelter data (GeoJSON in EPSG:25833) and plot on the map
-proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
+const hasProj4 = typeof proj4 !== 'undefined';
+if (hasProj4) {
+  proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
+}
+
+const toLeafletLatLon = (coordinates) => {
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const x = Number(coordinates[0]);
+  const y = Number(coordinates[1]);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+
+  // Already WGS84 [lon, lat]
+  if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
+    return { lat: y, lon: x };
+  }
+
+  // Projected coordinates (expected EPSG:25833)
+  if (hasProj4) {
+    const [lon, lat] = proj4("EPSG:25833", "EPSG:4326", [x, y]);
+    return { lat, lon };
+  }
+
+  return null;
+};
 
 const loadShelters = async () => {
   try {
@@ -723,14 +760,19 @@ const loadShelters = async () => {
       throw new Error('Ugyldig GeoJSON fra /api/shelters');
     }
 
+    let shelterCount = 0;
     const bounds = [];
     geojson.features.forEach((feature) => {
       if (!feature.geometry || feature.geometry.type !== "Point") {
         return;
       }
       
-      // GeoJSON format: [lon, lat]
-      const [lon, lat] = feature.geometry.coordinates;
+      const converted = toLeafletLatLon(feature.geometry.coordinates);
+      if (!converted) {
+        console.warn('Ugyldige eller ikke-konverterbare shelter-koordinater', feature.geometry.coordinates);
+        return;
+      }
+      const { lat, lon } = converted;
       const props = feature.properties || {};
       
       const popup = `
@@ -747,6 +789,7 @@ const loadShelters = async () => {
         .addTo(layers.shelters)
         .bindPopup(popup);
 
+      shelterCount += 1;
       bounds.push([lat, lon]);
     });
     
