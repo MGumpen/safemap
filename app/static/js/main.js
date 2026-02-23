@@ -21,8 +21,12 @@ let hasUserCentered = false;
 
 // Variable to store user location circle
 let userLocationCircle = null;
+let currentUserPosition = null;
 
 const updateUserLocation = (lat, lng, accuracy, shouldCenter = false) => {
+  // Update current user position for distance filtering
+  currentUserPosition = { lat, lon: lng };
+  
   if (shouldCenter) {
     map.setView([lat, lng], Math.max(map.getZoom(), DEFAULT_ZOOM));
     hasUserCentered = true;
@@ -724,24 +728,30 @@ const loadShelters = async () => {
       if (!feature.geometry || feature.geometry.type !== "Point") {
         return;
       }
-
-      const [x, y] = feature.geometry.coordinates;
-      const [lon, lat] = proj4("EPSG:25833", "EPSG:4326", [x, y]);
-
+      
+      // GeoJSON format: [lon, lat]
+      const [lon, lat] = feature.geometry.coordinates;
       const props = feature.properties || {};
+      
       const popup = `
-        <strong>Tilfluktsrom</strong><br />
-        Adresse: ${props.adresse || "Ukjent"}<br />
-        Plasser: ${props.plasser ?? "Ukjent"}
+        <div style="min-width: 200px;">
+          <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: bold; color: #000;">
+            Tilfluktsrom
+          </h3>
+          <p style="margin: 5px 0; font-size: 12px;"><strong>Adresse:</strong> ${props.adresse || "Ukjent"}</p>
+          ${props.plasser ? `<p style="margin: 5px 0; font-size: 12px;"><strong>Plasser:</strong> ${props.plasser}</p>` : ''}
+        </div>
       `;
-
+      
       L.marker([lat, lon], { icon: shelterIcon(getShelterSize(map.getZoom())) })
         .addTo(layers.shelters)
         .bindPopup(popup);
 
       bounds.push([lat, lon]);
     });
-
+    
+    console.log(`Viser ${shelterCount} tilfluktsrom på kartet`);
+    
     if (!hasUserCentered && bounds.length > 0) {
       map.fitBounds(bounds, { padding: [20, 20] });
     }
