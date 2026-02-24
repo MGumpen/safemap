@@ -15,23 +15,30 @@ Prosjektet er en del av faget IS-218 Geografiske informasjonssystemer, IT og IoT
 
 ### Forutsetninger
 
-- Python 3.10 eller nyere
+- Docker Desktop (eller Docker Engine + Docker Compose)
 - Git
 
-### Installasjon
+### Start prosjektet
 
 ```bash
 # Klon repositoriet
 git clone https://github.com/MGumpen/safemap.git
 cd safemap
 
-# Opprett virtuelt miljø
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Lag .env-fil i prosjektroten med disse variablene:
+# user=
+# password=
+# host=
+# port=
+# dbname=
 
-# Installer avhengigheter
-pip install -r requirements.txt
+# Bygg og start appen
+docker compose up --build
 ```
+
+Appen blir tilgjengelig på `http://localhost:8000`.
+
+`docker compose down` stopper appen.
 
 ## Utvikling
 
@@ -45,6 +52,11 @@ safemap/
 ├── static/           # HTML, CSS, JavaScript
 └── requirements.txt  # Python-avhengigheter
 ```
+
+### Arkitekturskisse
+
+<img width="1163" height="519" alt="image" src="https://github.com/user-attachments/assets/04643f51-03c3-41f5-8011-3cb18b021f90" />
+
 
 ### Kodekvalitet
 
@@ -105,3 +117,14 @@ Prosjektet er utviklet som en del av IS-218 ved Universitetet i Agder i samarbei
 - [CI/CD Workflows](.github/workflows/README.md) - Detaljert dokumentasjon om automatisering
 - [Branch Protection](.github/BRANCH_PROTECTION.md) - Instruksjoner for branch protection
 - [Contributing](CONTRIBUTING.md) - Guide for bidragsytere
+
+## Refleksjon
+
+- Vi kan forbedre struktureringen av prosjektet slik at koden blir lettere å vedlikeholde.
+- Dokumentasjonen bør være mer detaljert, spesielt rundt valg av teknologier og arkitektur.
+- Testdekningen er for lav og bør økes for å sikre stabilitet.
+- Vi kunne hatt bedre tidsplanlegging for å unngå siste‑liten endringer.
+- Brukeropplevelsen kan finjusteres med mer tilbakemelding fra reelle brukere.
+
+## Video av system
+https://github.com/MGumpen/safemap/issues/26#issue-3983429669

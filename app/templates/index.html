@@ -4,13 +4,90 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Safemap</title>
+    <!--
+    <changeLog>
+      <change date="2026-02-23" author="Codex">
+        <summary>La til proj4-bibliotek for visning av tilfluktsrom-koordinater fra API.</summary>
+        <details>
+          <item>main.js transformerer shelter-koordinater fra EPSG:25833 til WGS84 ved rendering.</item>
+        </details>
+      </change>
+    </changeLog>
+    -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
   </head>
 
   <body>
+    <header class="app-header">
+      <div class="app-header__title" id="safemap-logo" role="button" aria-label="Finn min posisjon">Safemap</div>
+      <div class="app-header__spacer"></div>
+      <div class="app-header__search-wrapper">
+        <input
+          class="app-header__search"
+          id="address-search"
+          type="text"
+          placeholder="Søk adresse"
+          aria-label="Søk adresse"
+          autocomplete="off"
+        />
+        <div class="address-suggestions" id="address-suggestions" role="listbox" aria-label="Adresseforslag"></div>
+      </div>
+      <button class="app-header__menu" aria-label="Åpne meny">☰</button>
+    </header>
+    <aside id="layer-controls" class="layer-controls">
+      <div class="layer-controls__title">Filter</div>
+      <table class="layer-controls__table">
+        <tbody>
+          <tr>
+            <td>Sykehus</td>
+            <td><input id="layer-hospitals" type="checkbox" checked /></td>
+          </tr>
+          <tr>
+            <td>Legevakt</td>
+            <td><input id="layer-legevakt" type="checkbox" checked /></td>
+          </tr>
+          <tr>
+            <td>Brannstasjoner</td>
+            <td><input id="layer-brannstasjoner" type="checkbox" checked /></td>
+          </tr>
+          <tr>
+            <td>Tilfluktsrom</td>
+            <td><input id="layer-tilfluktsrom" type="checkbox" checked /></td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="layer-controls__divider"></div>
+      
+      <div class="layer-controls__title">Avstandsfilter</div>
+      <div class="distance-filter">
+        <div class="distance-filter__controls">
+          <label for="distance-radius" class="distance-filter__label">
+            Radius: <span id="distance-value">5</span> km
+          </label>
+          <input 
+            id="distance-radius" 
+            type="range" 
+            min="1" 
+            max="50" 
+            value="5" 
+            step="1"
+            class="distance-filter__slider"
+          />
+        </div>
+        <button id="apply-distance-filter" class="distance-filter__button">
+          Søk nær min posisjon
+        </button>
+        <button id="clear-distance-filter" class="distance-filter__button distance-filter__button--secondary" style="display: none;">
+          Fjern filter
+        </button>
+        <div id="distance-filter-results" class="distance-filter__results"></div>
+      </div>
+    </aside>
     <div id="map"></div>
-    <script src="/static/js/main.js"></script>
+    <script src="/static/js/main.js?v=1"></script>
   </body>
 </html>

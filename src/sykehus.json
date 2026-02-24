@@ -1,0 +1,702 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Akershus universitetssykehus",
+        "adresse": "Nordbyhagaveien",
+        "postnummer": "1474",
+        "poststed": "Lørenskog",
+        "kommune": "Lørenskog"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.9948792,
+          59.9315474
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Haukeland universitetssykehus",
+        "adresse": "St. Halvards vei",
+        "postnummer": "5052",
+        "poststed": "Bergen",
+        "kommune": "Bergen"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.3590498,
+          60.3735808
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Stavanger universitetssjukehus",
+        "adresse": "Cecilie Tvedts gate",
+        "postnummer": "4016",
+        "poststed": "Stavanger",
+        "kommune": "Stavanger"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.733776,
+          58.952412
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Østfold",
+        "adresse": "118",
+        "postnummer": "1714",
+        "poststed": "Sarpsborg",
+        "kommune": "Sarpsborg"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.0250068,
+          59.316647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "St. Olavs hospital",
+        "adresse": "Olav Kyrres gate",
+        "postnummer": "7012",
+        "poststed": "Trondheim",
+        "kommune": "Trondheim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.3866879,
+          63.4200085
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Oslo universitetssykehus",
+        "adresse": "Problemveien",
+        "postnummer": "0349",
+        "poststed": "Oslo",
+        "kommune": "Oslo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.7144341,
+          59.9489712
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset i Vestfold",
+        "adresse": "Øvre Dietrichs vei",
+        "postnummer": "3117",
+        "poststed": "Tønsberg",
+        "kommune": "Tønsberg"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.4189879,
+          59.2721196
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Telemark",
+        "adresse": "Telemarksvegen",
+        "postnummer": "3710",
+        "poststed": "Skien",
+        "kommune": "Skien"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          9.5919862,
+          59.1922516
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Drammen sykehus",
+        "adresse": "Jacob Borchs gate",
+        "postnummer": "3013",
+        "poststed": "Drammen",
+        "kommune": "Drammen"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.2351483,
+          59.742446
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Lovisenberg",
+        "adresse": "Lovisenberg, St. Hanshaugen, Oslo, 0456, Norge",
+        "postnummer": "0456",
+        "poststed": "Oslo",
+        "kommune": "Oslo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.747348,
+          59.9333785
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Bærum sykehus",
+        "adresse": "Sogneprest Munthe-Kaas vei",
+        "postnummer": "1346",
+        "poststed": "Sandvika",
+        "kommune": "Bærum"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.5108254,
+          59.8983898
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sørlandet sykehus",
+        "adresse": "Egsveien",
+        "postnummer": "4615",
+        "poststed": "Kristiansand",
+        "kommune": "Kristiansand"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          7.9824487,
+          58.1643238
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Diakonhjemmet",
+        "adresse": "Slemdalsveien",
+        "postnummer": "0369",
+        "poststed": "Oslo",
+        "kommune": "Oslo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.7048756,
+          59.9362784
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Universitetssykehuset Nord-Norge",
+        "adresse": "Tromsøysundtunnelen (T2)",
+        "postnummer": "9019",
+        "poststed": "Tromsø",
+        "kommune": "Tromsø"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          18.9825454,
+          69.683892
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Haugesund sjukehus",
+        "adresse": "Karmsundgata",
+        "postnummer": "5528",
+        "poststed": "Haugesund",
+        "kommune": "Haugesund"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.280779,
+          59.409592
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Førde sentralsjukehus",
+        "adresse": "Hatlehaugen",
+        "postnummer": "6810",
+        "poststed": "Førde",
+        "kommune": "Sunnfjord"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.8875799,
+          61.4568357
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Innlandet",
+        "adresse": "Ludvig Skattums gate",
+        "postnummer": "2821",
+        "poststed": "Gjøvik",
+        "kommune": "Gjøvik"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.6798922,
+          60.8031246
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Ålesund sjukehus",
+        "adresse": "Åsehaugen",
+        "postnummer": "6017",
+        "poststed": "Ålesund",
+        "kommune": "Ålesund"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.3128438,
+          62.4641973
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sørlandet sykehus",
+        "adresse": "Sneglebakken",
+        "postnummer": "4847",
+        "poststed": "Arendal",
+        "kommune": "Arendal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          8.7545282,
+          58.4669145
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Levanger",
+        "adresse": "St Olavs gate",
+        "postnummer": "7600",
+        "poststed": "Levanger",
+        "kommune": "Levanger"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.289742,
+          63.741747
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Innlandet",
+        "adresse": "Furnesvegen",
+        "postnummer": "2317",
+        "poststed": "Hamar",
+        "kommune": "Hamar"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.0714008,
+          60.7982875
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Ringerike sykehus",
+        "adresse": "Arnold Dybsjords vei",
+        "postnummer": "3511",
+        "poststed": "Hønefoss",
+        "kommune": "Ringerike"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.25396,
+          60.14884
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Nordlandssykehuset",
+        "adresse": "Kongens gate",
+        "postnummer": "8006",
+        "poststed": "Bodø",
+        "kommune": "Bodø"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.397749,
+          67.284692
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Akershus Universitetssykehus",
+        "adresse": "Parkvegen",
+        "postnummer": "2214",
+        "poststed": "Kongsvinger",
+        "kommune": "Kongsvinger"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.9940666,
+          60.1945718
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Innlandet",
+        "adresse": "Margrethe Grundtvigs veg",
+        "postnummer": "2609",
+        "poststed": "Lillehammer",
+        "kommune": "Lillehammer"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.4739402,
+          61.1123957
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sjukehuset Nordmøre og Romsdal",
+        "adresse": "Opdølvegen",
+        "postnummer": "6450",
+        "poststed": "Hjelset",
+        "kommune": "Molde"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          7.5134376,
+          62.7811659
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Nordlandssykehuset Vesterålen",
+        "adresse": "Knut Hamsunsgate",
+        "postnummer": "8450",
+        "poststed": "Stokmarknes",
+        "kommune": "Hadsel"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.9102326,
+          68.5600072
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Innlandet",
+        "adresse": "Halvdan Lunds veg",
+        "postnummer": "2414",
+        "poststed": "Elverum",
+        "kommune": "Elverum"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.5728194,
+          60.8768827
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Stord sjukehus",
+        "adresse": "Tysevegen",
+        "postnummer": "5416",
+        "poststed": "Leirvik",
+        "kommune": "Stord"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.5117349,
+          59.792701
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Volda sjukehus",
+        "adresse": "Sjukehusvegen",
+        "postnummer": "6103",
+        "poststed": "Volda",
+        "kommune": "Volda"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.0911571,
+          62.1492159
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sykehuset Namsos",
+        "adresse": "Geilin",
+        "postnummer": "7803",
+        "poststed": "Namsos",
+        "kommune": "Namsos"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.5051322,
+          64.4706144
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Finnmarkssykehuset",
+        "adresse": "Sykehusveien",
+        "postnummer": "9601",
+        "poststed": "Hammerfest",
+        "kommune": "Hammerfest"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          23.6712362,
+          70.6729395
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helgelandssykehuset",
+        "adresse": "Prestmarkveien",
+        "postnummer": "8800",
+        "poststed": "Sandnessjøen",
+        "kommune": "Alstahaug"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          12.6185946,
+          66.0182243
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Kongsberg sykehus",
+        "adresse": "Drammensveien",
+        "postnummer": "3613",
+        "poststed": "Kongsberg",
+        "kommune": "Kongsberg"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          9.65625,
+          59.6704299
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Sørlandet sykehus",
+        "adresse": "Engvald Hansens vei",
+        "postnummer": "4405",
+        "poststed": "Flekkefjord",
+        "kommune": "Flekkefjord"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.665859,
+          58.2985339
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Universitetssykehuset Nord-Norge",
+        "adresse": "St Olavs gate",
+        "postnummer": "9406",
+        "poststed": "Harstad",
+        "kommune": "Harstad"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          16.5252583,
+          68.7962475
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Helgelandssykehuset",
+        "adresse": "Sportsalleen",
+        "postnummer": "8613",
+        "poststed": "Mo i Rana",
+        "kommune": "Rana"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.1859291,
+          66.3260164
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Universitetssykehuset Nord-Norge",
+        "adresse": "Sykehusveien",
+        "postnummer": "8516",
+        "poststed": "Narvik",
+        "kommune": "Narvik"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          17.4131795,
+          68.4420993
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Finnmarkssykehuset",
+        "adresse": "Skytterhusveien 2",
+        "postnummer": "9900",
+        "poststed": "Kirkenes",
+        "kommune": "Sør-Varanger"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.034441,
+          69.706858
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Haukeland universitetssykehus",
+        "adresse": "Sjukehusvegen 16",
+        "postnummer": "5704",
+        "poststed": "Voss",
+        "kommune": "Voss"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.4203925,
+          60.6330514
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "navn": "Nordlandssykehuset Lofoten",
+        "adresse": "Sykehusbakken",
+        "postnummer": "8372",
+        "poststed": "Gravdal",
+        "kommune": "Vestvågøy"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.5368679,
+          68.119638
+        ]
+      }
+    }
+  ]
+}
