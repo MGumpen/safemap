@@ -15,23 +15,30 @@ Prosjektet er en del av faget IS-218 Geografiske informasjonssystemer, IT og IoT
 
 ### Forutsetninger
 
-- Python 3.10 eller nyere
+- Docker Desktop (eller Docker Engine + Docker Compose)
 - Git
 
-### Installasjon
+### Start prosjektet
 
 ```bash
 # Klon repositoriet
 git clone https://github.com/MGumpen/safemap.git
 cd safemap
 
-# Opprett virtuelt miljø
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Lag .env-fil i prosjektroten med disse variablene:
+# user=
+# password=
+# host=
+# port=
+# dbname=
 
-# Installer avhengigheter
-pip install -r requirements.txt
+# Bygg og start appen
+docker compose up --build
 ```
+
+Appen blir tilgjengelig på `http://localhost:8000`.
+
+`docker compose down` stopper appen.
 
 ## Utvikling
 
@@ -68,19 +75,6 @@ ruff format .
 mypy .
 pytest
 ```
-
-## Docker
-
-Kjør appen likt hos alle med Docker:
-
-1. Kopiér [\.env.example](.env.example) til `.env` og fyll inn riktige databaseverdier.
-2. Start:
-
-```bash
-docker compose up --build
-```
-
-Appen blir tilgjengelig på `http://localhost:8000`.
 
 ## Continuous Integration
 
