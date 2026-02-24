@@ -123,3 +123,11 @@ Prosjektet er utviklet som en del av IS-218 ved Universitetet i Agder i samarbei
 - [CI/CD Workflows](.github/workflows/README.md) - Detaljert dokumentasjon om automatisering
 - [Branch Protection](.github/BRANCH_PROTECTION.md) - Instruksjoner for branch protection
 - [Contributing](CONTRIBUTING.md) - Guide for bidragsytere
+
+## Refleksjon
+
+- Vi kan forbedre struktureringen av prosjektet slik at koden blir lettere å vedlikeholde.
+- Dokumentasjonen bør være mer detaljert, spesielt rundt valg av teknologier og arkitektur.
+- Testdekningen er for lav og bør økes for å sikre stabilitet.
+- Vi kunne hatt bedre tidsplanlegging for å unngå siste‑liten endringer.
+- Brukeropplevelsen kan finjusteres med mer tilbakemelding fra reelle brukere.
