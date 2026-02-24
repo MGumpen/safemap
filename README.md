@@ -131,3 +131,6 @@ Prosjektet er utviklet som en del av IS-218 ved Universitetet i Agder i samarbei
 - Testdekningen er for lav og bør økes for å sikre stabilitet.
 - Vi kunne hatt bedre tidsplanlegging for å unngå siste‑liten endringer.
 - Brukeropplevelsen kan finjusteres med mer tilbakemelding fra reelle brukere.
+
+## Video av system
+https://github.com/MGumpen/safemap/issues/26#issue-3983429669
