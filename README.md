@@ -46,6 +46,11 @@ safemap/
 └── requirements.txt  # Python-avhengigheter
 ```
 
+### Arkitekturskisse
+
+<img width="1163" height="519" alt="image" src="https://github.com/user-attachments/assets/04643f51-03c3-41f5-8011-3cb18b021f90" />
+
+
 ### Kodekvalitet
 
 Prosjektet bruker følgende verktøy for å sikre høy kodekvalitet:
