@@ -131,11 +131,100 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 18
 }).addTo(map);
 
+map.createPane('analysisZonesPane');
+const analysisZonesPane = map.getPane('analysisZonesPane');
+if (analysisZonesPane) {
+  analysisZonesPane.style.zIndex = '350';
+}
+
+function getAnalysisZoneColor(score) {
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) return '#94a3b8';
+  const clampedScore = Math.max(0, Math.min(100, numericScore));
+
+  const interpolateChannel = (start, end, ratio) => Math.round(start + ((end - start) * ratio));
+  const hexToRgb = (hex) => ({
+    r: Number.parseInt(hex.slice(1, 3), 16),
+    g: Number.parseInt(hex.slice(3, 5), 16),
+    b: Number.parseInt(hex.slice(5, 7), 16)
+  });
+  const rgbToHex = ({ r, g, b }) => `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+
+  const red = hexToRgb('#ef4444');
+  const orange = hexToRgb('#f59e0b');
+  const green = hexToRgb('#22c55e');
+
+  if (clampedScore <= 50) {
+    const ratio = clampedScore / 50;
+    return rgbToHex({
+      r: interpolateChannel(red.r, orange.r, ratio),
+      g: interpolateChannel(red.g, orange.g, ratio),
+      b: interpolateChannel(red.b, orange.b, ratio)
+    });
+  }
+
+  const ratio = (clampedScore - 50) / 50;
+  return rgbToHex({
+    r: interpolateChannel(orange.r, green.r, ratio),
+    g: interpolateChannel(orange.g, green.g, ratio),
+    b: interpolateChannel(orange.b, green.b, ratio)
+  });
+}
+
+function getAnalysisZoneLevelLabel(score) {
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) return 'Ukjent';
+  if (numericScore >= 75) return 'Høy';
+  if (numericScore >= 50) return 'Middels';
+  return 'Lav';
+}
+
+function getAnalysisZoneCellSize(zoom) {
+  if (zoom >= 13) return 1200;
+  if (zoom >= 11) return 2500;
+  if (zoom >= 9) return 5000;
+  if (zoom >= 7) return 10000;
+  return 20000;
+}
+
+function createAnalysisZoneTooltip(properties = {}) {
+  const score = Number(properties.score ?? 0);
+  const maxScore = Number(properties.max_score ?? 100);
+  const label = getAnalysisZoneLevelLabel(score);
+  return `Beredskapsscore: ${score} / ${maxScore} (${label})`;
+}
+
 const layers = {
   hospitals: L.layerGroup(),
   legevakt: L.layerGroup(),
   brannstasjoner: L.featureGroup(),
-  shelters: L.layerGroup()
+  shelters: L.layerGroup(),
+  analysisZones: L.geoJSON(null, {
+    pane: 'analysisZonesPane',
+    style: (feature) => {
+      const properties = feature?.properties || {};
+      const color = getAnalysisZoneColor(properties.score);
+      return {
+        color,
+        weight: 1,
+        opacity: 0.4,
+        fillColor: color,
+        fillOpacity: 0.22
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const properties = feature?.properties || {};
+      const tooltip = createAnalysisZoneTooltip(properties);
+      layer.bindTooltip(tooltip, { sticky: true, opacity: 0.95 });
+      layer.bindPopup(`
+        <div style="min-width: 180px;">
+          <strong>Beredskapssone</strong><br/>
+          <span style="color:#6b7280;">${escapeHtml(getAnalysisZoneLevelLabel(properties.score))}</span>
+          <div style="margin-top:8px;"><strong>${Number(properties.score || 0)} / ${Number(properties.max_score || 100)} poeng</strong></div>
+        </div>
+      `);
+    }
+  })
 };
 
 const initLayerToggle = (checkboxId, layer) => {
@@ -157,8 +246,9 @@ const applyLayerVisibility = () => {
   const zoom = map.getZoom();
   const showIcons = zoom >= 8;
 
-  const setLayer = (id, layer) => {
-    const shouldShow = showIcons && isLayerChecked(id);
+  const setLayer = (id, layer, options = {}) => {
+    const { requiresIconZoom = true } = options;
+    const shouldShow = (requiresIconZoom ? showIcons : true) && isLayerChecked(id);
     if (shouldShow) {
       map.addLayer(layer);
     } else {
@@ -170,6 +260,7 @@ const applyLayerVisibility = () => {
   setLayer('layer-legevakt', layers.legevakt);
   setLayer('layer-brannstasjoner', layers.brannstasjoner);
   setLayer('layer-tilfluktsrom', layers.shelters);
+  setLayer('layer-analysis-zones', layers.analysisZones, { requiresIconZoom: false });
 };
 
 const setLoadingState = (isLoading) => {
@@ -203,9 +294,12 @@ const applyDistanceFilterButton = document.getElementById('apply-distance-filter
 const clearDistanceFilterButton = document.getElementById('clear-distance-filter');
 const distanceFilterResults = document.getElementById('distance-filter-results');
 const locationAnalysisContainer = document.getElementById('location-analysis');
+const analysisZoneLegend = document.getElementById('analysis-zone-legend');
 const analysisLayer = L.layerGroup().addTo(map);
 let analysisRequestToken = 0;
 let activeSelectionToken = 0;
+let analysisZonesRequestToken = 0;
+let analysisZonesRefreshTimer = null;
 const analysisState = {
   loading: false,
   error: '',
@@ -515,6 +609,61 @@ const fetchLocationAnalysis = async (coords, label = null) => {
   }
 };
 
+const setAnalysisZoneLegendVisibility = (visible) => {
+  if (!analysisZoneLegend) return;
+  analysisZoneLegend.classList.toggle('visible', visible);
+  analysisZoneLegend.setAttribute('aria-hidden', visible ? 'false' : 'true');
+};
+
+const clearAnalysisZones = () => {
+  layers.analysisZones.clearLayers();
+};
+
+const fetchAnalysisZones = async () => {
+  if (!isLayerChecked('layer-analysis-zones')) {
+    clearAnalysisZones();
+    setAnalysisZoneLegendVisibility(false);
+    return;
+  }
+
+  setAnalysisZoneLegendVisibility(true);
+  applyLayerVisibility();
+
+  const bounds = map.getBounds();
+  const cellSizeM = getAnalysisZoneCellSize(map.getZoom());
+  const requestToken = ++analysisZonesRequestToken;
+
+  try {
+    const response = await fetch(
+      `/api/location-analysis-grid?min_lat=${bounds.getSouth()}&min_lon=${bounds.getWest()}&max_lat=${bounds.getNorth()}&max_lon=${bounds.getEast()}&cell_size_m=${cellSizeM}`
+    );
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Kunne ikke laste beredskapssoner.');
+    }
+    if (requestToken !== analysisZonesRequestToken) return;
+
+    clearAnalysisZones();
+    layers.analysisZones.addData(payload);
+  } catch (error) {
+    if (requestToken !== analysisZonesRequestToken) return;
+    clearAnalysisZones();
+    console.error('Klarte ikke oppdatere beredskapssoner:', error);
+  }
+};
+
+const scheduleAnalysisZoneRefresh = () => {
+  clearTimeout(analysisZonesRefreshTimer);
+  if (!isLayerChecked('layer-analysis-zones')) {
+    clearAnalysisZones();
+    setAnalysisZoneLegendVisibility(false);
+    return;
+  }
+  analysisZonesRefreshTimer = setTimeout(() => {
+    fetchAnalysisZones();
+  }, 250);
+};
+
 renderLocationAnalysis();
 
 const setDistanceFilterResultsVisibility = (visible) => {
@@ -684,6 +833,16 @@ const initializeDistanceFilterControls = () => {
       setDistanceFilterResultsVisibility(false);
     });
   }
+};
+
+const initializeAnalysisZoneControls = () => {
+  const checkbox = document.getElementById('layer-analysis-zones');
+  if (!checkbox) return;
+  checkbox.addEventListener('change', () => {
+    applyLayerVisibility();
+    scheduleAnalysisZoneRefresh();
+  });
+  setAnalysisZoneLegendVisibility(checkbox.checked);
 };
 
 const clearSuggestions = (target) => {
@@ -1086,9 +1245,15 @@ initLayerToggle('layer-hospitals', layers.hospitals);
 initLayerToggle('layer-legevakt', layers.legevakt);
 initLayerToggle('layer-brannstasjoner', layers.brannstasjoner);
 initLayerToggle('layer-tilfluktsrom', layers.shelters);
+initLayerToggle('layer-analysis-zones', layers.analysisZones);
 applyLayerVisibility();
+initializeAnalysisZoneControls();
 
-map.on('zoomend', updateMarkerSizes);
+map.on('zoomend', () => {
+  updateMarkerSizes();
+  scheduleAnalysisZoneRefresh();
+});
+map.on('moveend', scheduleAnalysisZoneRefresh);
 initializeDistanceFilterControls();
 
 // Beholder standard zoomkontroller

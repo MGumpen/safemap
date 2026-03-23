@@ -252,6 +252,125 @@ SELECT jsonb_build_object(
 $$;
 """
 
+LOCATION_ANALYSIS_GRID_FUNCTION_SQL = """
+CREATE OR REPLACE FUNCTION public.analyze_location_grid(
+    min_lat DOUBLE PRECISION,
+    min_lon DOUBLE PRECISION,
+    max_lat DOUBLE PRECISION,
+    max_lon DOUBLE PRECISION,
+    requested_cell_size_m INTEGER DEFAULT 2000,
+    max_cells INTEGER DEFAULT 144
+)
+RETURNS JSONB
+LANGUAGE sql
+AS $$
+WITH normalized AS (
+    SELECT
+        LEAST(min_lat, max_lat) AS min_lat,
+        LEAST(min_lon, max_lon) AS min_lon,
+        GREATEST(min_lat, max_lat) AS max_lat,
+        GREATEST(min_lon, max_lon) AS max_lon,
+        GREATEST(500, LEAST(requested_cell_size_m, 25000))::double precision AS requested_cell_size_m,
+        GREATEST(16, LEAST(max_cells, 400))::integer AS max_cells
+),
+bounds AS (
+    SELECT
+        ST_Transform(ST_MakeEnvelope(min_lon, min_lat, max_lon, max_lat, 4326), 3857) AS geom_3857,
+        requested_cell_size_m,
+        max_cells,
+        GREATEST(1, FLOOR(SQRT(max_cells::numeric)))::integer AS max_side_cells
+    FROM normalized
+),
+grid_meta AS (
+    SELECT
+        geom_3857,
+        GREATEST(
+            requested_cell_size_m,
+            (ST_XMax(geom_3857) - ST_XMin(geom_3857)) / max_side_cells,
+            (ST_YMax(geom_3857) - ST_YMin(geom_3857)) / max_side_cells
+        ) AS actual_cell_size_m,
+        ST_XMin(geom_3857) AS min_x,
+        ST_XMax(geom_3857) AS max_x,
+        ST_YMin(geom_3857) AS min_y,
+        ST_YMax(geom_3857) AS max_y
+    FROM bounds
+),
+cells AS (
+    SELECT
+        ST_MakeEnvelope(
+            meta.min_x + (gx * meta.actual_cell_size_m),
+            meta.min_y + (gy * meta.actual_cell_size_m),
+            LEAST(meta.min_x + ((gx + 1) * meta.actual_cell_size_m), meta.max_x),
+            LEAST(meta.min_y + ((gy + 1) * meta.actual_cell_size_m), meta.max_y),
+            3857
+        ) AS geom_3857,
+        meta.actual_cell_size_m
+    FROM grid_meta meta
+    CROSS JOIN LATERAL generate_series(
+        0,
+        GREATEST(0, CEIL((meta.max_x - meta.min_x) / meta.actual_cell_size_m)::integer - 1)
+    ) AS gx
+    CROSS JOIN LATERAL generate_series(
+        0,
+        GREATEST(0, CEIL((meta.max_y - meta.min_y) / meta.actual_cell_size_m)::integer - 1)
+    ) AS gy
+),
+cells_wgs84 AS (
+    SELECT
+        ST_Transform(geom_3857, 4326) AS geom_4326,
+        ST_Transform(ST_Centroid(geom_3857), 4326) AS centroid_4326,
+        actual_cell_size_m
+    FROM cells
+),
+scored AS (
+    SELECT
+        geom_4326,
+        actual_cell_size_m,
+        public.analyze_location_score(
+            ST_Y(centroid_4326),
+            ST_X(centroid_4326)
+        ) AS analysis
+    FROM cells_wgs84
+)
+SELECT jsonb_build_object(
+    'type',
+    'FeatureCollection',
+    'cell_size_m',
+    COALESCE((SELECT ROUND(MAX(actual_cell_size_m))::integer FROM scored), 0),
+    'feature_count',
+    COALESCE((SELECT COUNT(*) FROM scored), 0),
+    'features',
+    COALESCE(
+        (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'type',
+                    'Feature',
+                    'geometry',
+                    ST_AsGeoJSON(geom_4326)::jsonb,
+                    'properties',
+                    jsonb_build_object(
+                        'score', COALESCE((analysis->>'score')::integer, 0),
+                        'max_score', COALESCE((analysis->>'max_score')::integer, 100),
+                        'score_label',
+                        CASE
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 80 THEN 'Svært god'
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 60 THEN 'God'
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 40 THEN 'Moderat'
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 20 THEN 'Lav'
+                            ELSE 'Svak'
+                        END
+                    )
+                )
+            )
+            FROM scored
+        ),
+        '[]'::jsonb
+    )
+);
+$$;
+"""
+
 
 def _build_https_ssl_context() -> ssl.SSLContext:
     if certifi is not None:
@@ -505,6 +624,7 @@ def _ensure_location_analysis_function() -> None:
         try:
             cursor = connection.cursor()
             cursor.execute(LOCATION_ANALYSIS_FUNCTION_SQL)
+            cursor.execute(LOCATION_ANALYSIS_GRID_FUNCTION_SQL)
             connection.commit()
             cursor.close()
             _analysis_function_ready = True
@@ -698,6 +818,48 @@ def get_location_analysis(lat: float, lon: float):
         return JSONResponse(
             status_code=500,
             content={"error": f"Klarte ikke analysere punktet: {exc}"},
+        )
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+
+@app.get("/api/location-analysis-grid")
+def get_location_analysis_grid(
+    min_lat: float,
+    min_lon: float,
+    max_lat: float,
+    max_lon: float,
+    cell_size_m: int = 2000,
+):
+    connection = None
+    cursor = None
+
+    try:
+        _ensure_location_analysis_function()
+        connection = _get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT public.analyze_location_grid(%s, %s, %s, %s, %s)",
+            (min_lat, min_lon, max_lat, max_lon, cell_size_m),
+        )
+        row = cursor.fetchone()
+        if not row or row[0] is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Ingen analysedata tilgjengelig for dette kartutsnittet."},
+            )
+
+        payload = row[0]
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        return JSONResponse(content=payload)
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Klarte ikke analysere kartutsnittet: {exc}"},
         )
     finally:
         if cursor is not None:

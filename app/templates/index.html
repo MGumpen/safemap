@@ -15,7 +15,7 @@
     </changeLog>
     -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="/static/css/style.css?v=2" />
+    <link rel="stylesheet" href="/static/css/style.css?v=4" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
   </head>
@@ -57,8 +57,21 @@
             <td>Tilfluktsrom</td>
             <td><input id="layer-tilfluktsrom" type="checkbox" checked /></td>
           </tr>
+          <tr>
+            <td>Beredskapssoner</td>
+            <td><input id="layer-analysis-zones" type="checkbox" /></td>
+          </tr>
         </tbody>
       </table>
+      <div id="analysis-zone-legend" class="analysis-zone-legend" aria-hidden="true">
+        <div class="analysis-zone-legend__title">Beredskapsscore</div>
+        <div class="analysis-zone-legend__scale" aria-hidden="true"></div>
+        <div class="analysis-zone-legend__labels">
+          <span>0 (Lav)</span>
+          <span>50</span>
+          <span>100 (Høy)</span>
+        </div>
+      </div>
       
       <div class="layer-controls__divider"></div>
       
@@ -101,6 +114,6 @@
       </div>
     </aside>
     <div id="map"></div>
-    <script src="/static/js/main.js?v=2"></script>
+    <script src="/static/js/main.js?v=4"></script>
   </body>
 </html>
