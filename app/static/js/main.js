@@ -71,6 +71,45 @@ let distanceFilterCircle = null;
 let distanceFilterActive = false;
 let distanceFilterRadiusKm = 5;
 let distanceFilterResultsHidden = false;
+let locateControlButton = null;
+
+const showMapStatusPopup = (message, latLng = map.getCenter()) => {
+  const popupContent = document.createElement('div');
+  popupContent.className = 'map-status-popup__content';
+  popupContent.textContent = message;
+
+  L.popup({
+    className: 'map-status-popup',
+    closeButton: false,
+    autoClose: true,
+    closeOnClick: true,
+    offset: [0, -14]
+  })
+    .setLatLng(latLng)
+    .setContent(popupContent)
+    .openOn(map);
+};
+
+const setLocateControlLoading = (isLoading) => {
+  if (!locateControlButton) return;
+  locateControlButton.disabled = isLoading;
+  locateControlButton.classList.toggle('is-loading', isLoading);
+  locateControlButton.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+};
+
+const centerOnUserLocation = (lat, lng) => {
+  const targetZoom = Math.max(map.getZoom(), DEFAULT_ZOOM);
+  map.flyTo([lat, lng], targetZoom, {
+    animate: true,
+    duration: 0.8
+  });
+
+  window.setTimeout(() => {
+    if (userLocationCircle) {
+      userLocationCircle.openPopup();
+    }
+  }, 250);
+};
 
 const updateUserLocation = (lat, lng, accuracy, shouldCenter = false) => {
   // Update current user position for distance filtering
@@ -136,6 +175,93 @@ const analysisZonesPane = map.getPane('analysisZonesPane');
 if (analysisZonesPane) {
   analysisZonesPane.style.zIndex = '350';
 }
+
+const focusOnUserLocation = () => {
+  const fallbackPosition = currentUserPosition
+    ? { lat: currentUserPosition.lat, lon: currentUserPosition.lon }
+    : null;
+
+  if (fallbackPosition) {
+    centerOnUserLocation(fallbackPosition.lat, fallbackPosition.lon);
+  }
+
+  if (!navigator.geolocation) {
+    if (!fallbackPosition) {
+      showMapStatusPopup('Nettleseren støtter ikke geolokasjon.');
+    }
+    return;
+  }
+
+  setLocateControlLoading(true);
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+
+      updateUserLocation(lat, lng, accuracy, false);
+      centerOnUserLocation(lat, lng);
+      setLocateControlLoading(false);
+    },
+    (error) => {
+      setLocateControlLoading(false);
+      if (!fallbackPosition) {
+        showMapStatusPopup(`Kunne ikke hente posisjon: ${error.message}`);
+        return;
+      }
+      showMapStatusPopup('Viser sist kjente posisjon. Kunne ikke hente ny posisjon.', [fallbackPosition.lat, fallbackPosition.lon]);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 10000
+    }
+  );
+};
+
+const createLocateControl = () => {
+  const LocateControl = L.Control.extend({
+    options: {
+      position: 'topleft'
+    },
+    onAdd() {
+      const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-locate');
+      const button = L.DomUtil.create('button', 'leaflet-control-locate__button', container);
+      locateControlButton = button;
+
+      button.type = 'button';
+      button.title = 'Finn min posisjon';
+      button.setAttribute('aria-label', 'Finn min posisjon');
+      button.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="4.25"></circle>
+          <path d="M12 2.75v3.5M12 17.75v3.5M2.75 12h3.5M17.75 12h3.5"></path>
+        </svg>
+      `;
+
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.on(button, 'click', (event) => {
+        L.DomEvent.stop(event);
+        focusOnUserLocation();
+      });
+
+      return container;
+    }
+  });
+
+  const locateControl = new LocateControl();
+  locateControl.addTo(map);
+
+  const topLeftControls = map.getContainer().querySelector('.leaflet-top.leaflet-left');
+  const locateContainer = locateControl.getContainer();
+  const zoomContainer = topLeftControls?.querySelector('.leaflet-control-zoom');
+
+  if (topLeftControls && locateContainer && zoomContainer) {
+    topLeftControls.insertBefore(locateContainer, zoomContainer);
+  }
+};
+
+createLocateControl();
 
 function getAnalysisZoneColor(score) {
   const numericScore = Number(score);
