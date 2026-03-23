@@ -15,7 +15,7 @@
     </changeLog>
     -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="stylesheet" href="/static/css/style.css?v=2" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
   </head>
@@ -86,8 +86,21 @@
         </button>
         <div id="distance-filter-results" class="distance-filter__results"></div>
       </div>
+
+      <div class="layer-controls__divider"></div>
+
+      <div class="layer-controls__title">Punktanalyse</div>
+      <div
+        id="location-analysis"
+        class="analysis-panel"
+        aria-live="polite"
+      >
+        <div class="analysis-panel__placeholder">
+          Klikk i kartet eller søk adresse for å beregne beredskapsscore.
+        </div>
+      </div>
     </aside>
     <div id="map"></div>
-    <script src="/static/js/main.js?v=1"></script>
+    <script src="/static/js/main.js?v=2"></script>
   </body>
 </html>

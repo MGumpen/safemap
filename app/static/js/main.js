@@ -202,6 +202,23 @@ const distanceValueLabel = document.getElementById('distance-value');
 const applyDistanceFilterButton = document.getElementById('apply-distance-filter');
 const clearDistanceFilterButton = document.getElementById('clear-distance-filter');
 const distanceFilterResults = document.getElementById('distance-filter-results');
+const locationAnalysisContainer = document.getElementById('location-analysis');
+const analysisLayer = L.layerGroup().addTo(map);
+let analysisRequestToken = 0;
+let activeSelectionToken = 0;
+const analysisState = {
+  loading: false,
+  error: '',
+  data: null,
+  label: null
+};
+
+const analysisCategoryStyles = {
+  hospital: { color: '#c0392b', short: 'S' },
+  legevakt: { color: '#27ae60', short: 'L' },
+  fire_station: { color: '#f77f00', short: 'B' },
+  shelter: { color: '#d97706', short: 'T' }
+};
 
 const formatRouteDistance = (distanceMeters) => {
   const km = Number(distanceMeters) / 1000;
@@ -271,6 +288,234 @@ const formatDistanceKm = (distanceKm) => {
   if (distanceKm >= 10) return distanceKm.toFixed(1);
   return distanceKm.toFixed(2);
 };
+
+const formatAnalysisDistance = (distanceMeters) => {
+  const meters = Number(distanceMeters);
+  if (!Number.isFinite(meters)) return '';
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  const km = meters / 1000;
+  if (km >= 10) return `${km.toFixed(1)} km`;
+  return `${km.toFixed(2)} km`;
+};
+
+const formatAnalysisCoordinates = (point) => {
+  if (!point) return '';
+  const lat = Number(point.lat);
+  const lon = Number(point.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
+  return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+};
+
+const describeAnalysisScore = (score) => {
+  if (score >= 80) return 'Svært god nærhet til beredskapsressurser.';
+  if (score >= 60) return 'God nærhet til beredskapsressurser.';
+  if (score >= 40) return 'Moderat nærhet til beredskapsressurser.';
+  return 'Svak nærhet til beredskapsressurser.';
+};
+
+const buildAnalysisStatusText = (item) => {
+  const distanceMeters = Number(item?.distance_meters);
+  const idealDistance = Number(item?.ideal_distance_m);
+  const maxDistance = Number(item?.max_distance_m);
+
+  if (!Number.isFinite(distanceMeters) || !Number.isFinite(maxDistance)) {
+    return '';
+  }
+  if (Number.isFinite(idealDistance) && distanceMeters <= idealDistance) {
+    return `Full score ved ${formatAnalysisDistance(idealDistance)} eller nærmere.`;
+  }
+  if (distanceMeters <= maxDistance) {
+    return `Innenfor akseptabel avstand. Poengene faller gradvis frem til ${formatAnalysisDistance(maxDistance)}.`;
+  }
+  return `Utenfor anbefalt avstand på ${formatAnalysisDistance(maxDistance)}.`;
+};
+
+const clearAnalysisHighlights = () => {
+  analysisLayer.clearLayers();
+};
+
+const renderAnalysisHighlights = (data) => {
+  clearAnalysisHighlights();
+  const clickedPoint = data?.clicked_point;
+  const breakdown = Array.isArray(data?.breakdown) ? data.breakdown : [];
+  if (!clickedPoint || !breakdown.length) return;
+
+  const clickedLat = Number(clickedPoint.lat);
+  const clickedLon = Number(clickedPoint.lon);
+  if (!Number.isFinite(clickedLat) || !Number.isFinite(clickedLon)) return;
+
+  L.circle([clickedLat, clickedLon], {
+    radius: 150,
+    color: '#0f172a',
+    weight: 2,
+    opacity: 0.8,
+    fillOpacity: 0
+  }).addTo(analysisLayer);
+
+  breakdown.forEach((item) => {
+    const lat = Number(item?.lat);
+    const lon = Number(item?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    const style = analysisCategoryStyles[item.key] || { color: '#2563eb', short: '?' };
+
+    L.polyline([[clickedLat, clickedLon], [lat, lon]], {
+      color: style.color,
+      weight: 2,
+      opacity: 0.8,
+      dashArray: '7 6'
+    }).addTo(analysisLayer);
+
+    const marker = L.circleMarker([lat, lon], {
+      radius: 10,
+      color: style.color,
+      weight: 3,
+      fillColor: '#ffffff',
+      fillOpacity: 0.96
+    }).addTo(analysisLayer);
+
+    marker.bindTooltip(`${item.label}: ${formatAnalysisDistance(item.distance_meters)}`, {
+      direction: 'top',
+      opacity: 0.95
+    });
+    marker.bindPopup(`
+      <div style="min-width: 190px;">
+        <strong>${escapeHtml(item.name || item.label || 'Treff')}</strong><br/>
+        <span style="color:#6b7280;">${escapeHtml(item.description || '')}</span>
+        <div style="margin-top:8px;">
+          <strong>${Number(item.score || 0)} / ${Number(item.max_score || 0)} poeng</strong><br/>
+          ${escapeHtml(formatAnalysisDistance(item.distance_meters))}
+        </div>
+      </div>
+    `);
+  });
+};
+
+const renderLocationAnalysis = () => {
+  if (!locationAnalysisContainer) return;
+
+  if (analysisState.loading) {
+    locationAnalysisContainer.innerHTML = '<div class="analysis-panel__status">Analyserer punktet i databasen...</div>';
+    return;
+  }
+
+  if (analysisState.error) {
+    locationAnalysisContainer.innerHTML = `<div class="analysis-panel__error">${escapeHtml(analysisState.error)}</div>`;
+    return;
+  }
+
+  if (!analysisState.data) {
+    locationAnalysisContainer.innerHTML = `
+      <div class="analysis-panel__placeholder">
+        Klikk i kartet eller søk adresse for å beregne beredskapsscore.
+      </div>
+    `;
+    return;
+  }
+
+  const score = Number(analysisState.data.score || 0);
+  const maxScore = Number(analysisState.data.max_score || 100);
+  const title = analysisState.label?.title || 'Valgt punkt';
+  const meta = analysisState.label?.meta || formatAnalysisCoordinates(analysisState.data.clicked_point);
+  const breakdown = Array.isArray(analysisState.data.breakdown) ? analysisState.data.breakdown : [];
+
+  const breakdownHtml = breakdown.map((item) => {
+    const style = analysisCategoryStyles[item.key] || { color: '#2563eb', short: '?' };
+    const itemScore = Number(item.score || 0);
+    const itemMaxScore = Number(item.max_score || 0);
+    const ratioPercent = itemMaxScore > 0
+      ? Math.max(0, Math.min(100, (itemScore / itemMaxScore) * 100))
+      : 0;
+
+    return `
+      <div class="analysis-panel__item">
+        <div class="analysis-panel__item-top">
+          <div>
+            <div class="analysis-panel__item-label" style="color: ${style.color};">
+              ${escapeHtml(item.label || 'Kategori')}
+            </div>
+            <div class="analysis-panel__item-target">${escapeHtml(item.name || item.label || 'Treff')}</div>
+          </div>
+          <div class="analysis-panel__item-score">${itemScore} / ${itemMaxScore}</div>
+        </div>
+        <div class="analysis-panel__meter">
+          <span style="width: ${ratioPercent}%; background: ${style.color};"></span>
+        </div>
+        <div class="analysis-panel__item-meta">${escapeHtml(buildAnalysisStatusText(item))}</div>
+        <div class="analysis-panel__item-submeta">
+          ${escapeHtml(formatAnalysisDistance(item.distance_meters))}
+          ${item.description ? ` • ${escapeHtml(item.description)}` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  locationAnalysisContainer.innerHTML = `
+    <div class="analysis-panel__header">
+      <div>
+        <div class="analysis-panel__eyebrow">Punktanalyse</div>
+        <div class="analysis-panel__place">${escapeHtml(title)}</div>
+        <div class="analysis-panel__place-meta">${escapeHtml(meta)}</div>
+      </div>
+      <div class="analysis-panel__total">
+        ${score}
+        <span>/ ${maxScore}</span>
+      </div>
+    </div>
+    <div class="analysis-panel__summary">${escapeHtml(describeAnalysisScore(score))}</div>
+    <div class="analysis-panel__body">${breakdownHtml}</div>
+  `;
+};
+
+const setLocationAnalysisState = (nextState = {}) => {
+  Object.assign(analysisState, nextState);
+  renderLocationAnalysis();
+};
+
+const updateLocationAnalysisLabel = (label) => {
+  analysisState.label = label;
+  renderLocationAnalysis();
+};
+
+const fetchLocationAnalysis = async (coords, label = null) => {
+  if (!coords) return;
+  const requestToken = ++analysisRequestToken;
+
+  setLocationAnalysisState({
+    loading: true,
+    error: '',
+    data: null,
+    label: label || analysisState.label
+  });
+  clearAnalysisHighlights();
+
+  try {
+    const response = await fetch(`/api/location-analysis?lat=${coords.lat}&lon=${coords.lon}`);
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Analyseoppslag feilet.');
+    }
+    if (requestToken !== analysisRequestToken) return;
+
+    setLocationAnalysisState({
+      loading: false,
+      error: '',
+      data: payload,
+      label: label || analysisState.label
+    });
+    renderAnalysisHighlights(payload);
+  } catch (error) {
+    if (requestToken !== analysisRequestToken) return;
+    clearAnalysisHighlights();
+    setLocationAnalysisState({
+      loading: false,
+      data: null,
+      error: error instanceof Error ? error.message : 'Klarte ikke analysere punktet.'
+    });
+  }
+};
+
+renderLocationAnalysis();
 
 const setDistanceFilterResultsVisibility = (visible) => {
   if (!distanceFilterResults) return;
@@ -495,6 +740,7 @@ const setActiveSuggestion = (index, target) => {
 const applyAddressSelection = (item, targetInput, targetSuggestions) => {
   const coords = extractCoordinates(item);
   if (!coords) return;
+  activeSelectionToken += 1;
   const label = formatAddressLabel(item);
   if (targetInput) {
     targetInput.value = label.title;
@@ -516,6 +762,8 @@ const applyAddressSelection = (item, targetInput, targetSuggestions) => {
     </div>
   `).openPopup();
   map.setView([coords.lat, coords.lon], Math.max(map.getZoom(), 14));
+  updateLocationAnalysisLabel(label);
+  fetchLocationAnalysis(coords, label);
 };
 
 const renderSuggestions = (items, target, targetInput) => {
@@ -664,18 +912,27 @@ const reverseGeocode = async (lat, lon) => {
 
 map.on('click', async (event) => {
   const { lat, lng } = event.latlng;
+  const selectionToken = ++activeSelectionToken;
   if (addressMarker) addressLayer.removeLayer(addressMarker);
   addressMarker = L.marker([lat, lng]).addTo(addressLayer);
-  fromSelection = { coords: { lat, lon: lng }, label: { title: '', meta: '' } };
+  const fallbackLabel = {
+    title: 'Valgt punkt',
+    meta: formatAnalysisCoordinates({ lat, lon: lng })
+  };
+  fromSelection = { coords: { lat, lon: lng }, label: fallbackLabel };
+  updateLocationAnalysisLabel(fallbackLabel);
+  fetchLocationAnalysis({ lat, lon: lng }, fallbackLabel);
 
   const address = await reverseGeocode(lat, lng);
+  if (selectionToken !== activeSelectionToken) return;
   if (address) {
     const label = formatAddressLabel(address);
     fromSelection.label = label;
     if (addressInput) addressInput.value = label.title;
+    updateLocationAnalysisLabel(label);
     addressMarker.bindPopup(buildRoutePopup(label.title, label.meta)).openPopup();
   } else {
-    addressMarker.bindPopup(buildRoutePopup('', '')).openPopup();
+    addressMarker.bindPopup(buildRoutePopup(fallbackLabel.title, fallbackLabel.meta)).openPopup();
   }
 });
 

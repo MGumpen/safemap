@@ -53,6 +53,35 @@ safemap/
 └── requirements.txt  # Python-avhengigheter
 ```
 
+### Importer JSON-kilder til databasen
+
+Kartet kan fortsatt lese punktdata direkte fra JSON-filene i `src/`, men de samme
+filene kan speiles inn i PostGIS for spatial SQL-analyse.
+
+```bash
+python3 scripts/import_geojson_to_postgis.py --dataset all
+```
+
+Eller i prosjektets Docker-miljo:
+
+```bash
+docker compose exec safemap python /scripts/import_geojson_to_postgis.py --dataset all
+```
+
+Dette oppretter og fyller disse tabellene:
+
+- `sykehus_points`
+- `legevakt_points`
+
+For aa kun validere JSON-formatet uten databaseendringer:
+
+```bash
+python3 scripts/import_geojson_to_postgis.py --dataset all --dry-run
+```
+
+Denne losningen lar dere beholde JSON som del av Oppgave 1, samtidig som de samme
+punktene finnes i databasen for dynamiske PostGIS-sporringer i neste del av kartet.
+
 ### Arkitekturskisse
 
 <img width="1163" height="519" alt="image" src="https://github.com/user-attachments/assets/04643f51-03c3-41f5-8011-3cb18b021f90" />
