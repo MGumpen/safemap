@@ -360,3 +360,5 @@ $$;
 https://github.com/MGumpen/safemap/issues/26#issue-3983429669
 
 ## Video av systemet oppgave 2
+https://github.com/MGumpen/safemap/issues/31
+
