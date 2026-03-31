@@ -71,6 +71,45 @@ let distanceFilterCircle = null;
 let distanceFilterActive = false;
 let distanceFilterRadiusKm = 5;
 let distanceFilterResultsHidden = false;
+let locateControlButton = null;
+
+const showMapStatusPopup = (message, latLng = map.getCenter()) => {
+  const popupContent = document.createElement('div');
+  popupContent.className = 'map-status-popup__content';
+  popupContent.textContent = message;
+
+  L.popup({
+    className: 'map-status-popup',
+    closeButton: false,
+    autoClose: true,
+    closeOnClick: true,
+    offset: [0, -14]
+  })
+    .setLatLng(latLng)
+    .setContent(popupContent)
+    .openOn(map);
+};
+
+const setLocateControlLoading = (isLoading) => {
+  if (!locateControlButton) return;
+  locateControlButton.disabled = isLoading;
+  locateControlButton.classList.toggle('is-loading', isLoading);
+  locateControlButton.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+};
+
+const centerOnUserLocation = (lat, lng) => {
+  const targetZoom = Math.max(map.getZoom(), DEFAULT_ZOOM);
+  map.flyTo([lat, lng], targetZoom, {
+    animate: true,
+    duration: 0.8
+  });
+
+  window.setTimeout(() => {
+    if (userLocationCircle) {
+      userLocationCircle.openPopup();
+    }
+  }, 250);
+};
 
 const updateUserLocation = (lat, lng, accuracy, shouldCenter = false) => {
   // Update current user position for distance filtering
@@ -131,11 +170,187 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 18
 }).addTo(map);
 
+map.createPane('analysisZonesPane');
+const analysisZonesPane = map.getPane('analysisZonesPane');
+if (analysisZonesPane) {
+  analysisZonesPane.style.zIndex = '350';
+}
+
+const focusOnUserLocation = () => {
+  const fallbackPosition = currentUserPosition
+    ? { lat: currentUserPosition.lat, lon: currentUserPosition.lon }
+    : null;
+
+  if (fallbackPosition) {
+    centerOnUserLocation(fallbackPosition.lat, fallbackPosition.lon);
+  }
+
+  if (!navigator.geolocation) {
+    if (!fallbackPosition) {
+      showMapStatusPopup('Nettleseren støtter ikke geolokasjon.');
+    }
+    return;
+  }
+
+  setLocateControlLoading(true);
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+
+      updateUserLocation(lat, lng, accuracy, false);
+      centerOnUserLocation(lat, lng);
+      setLocateControlLoading(false);
+    },
+    (error) => {
+      setLocateControlLoading(false);
+      if (!fallbackPosition) {
+        showMapStatusPopup(`Kunne ikke hente posisjon: ${error.message}`);
+        return;
+      }
+      showMapStatusPopup('Viser sist kjente posisjon. Kunne ikke hente ny posisjon.', [fallbackPosition.lat, fallbackPosition.lon]);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 10000
+    }
+  );
+};
+
+const createLocateControl = () => {
+  const LocateControl = L.Control.extend({
+    options: {
+      position: 'topleft'
+    },
+    onAdd() {
+      const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-locate');
+      const button = L.DomUtil.create('button', 'leaflet-control-locate__button', container);
+      locateControlButton = button;
+
+      button.type = 'button';
+      button.title = 'Finn min posisjon';
+      button.setAttribute('aria-label', 'Finn min posisjon');
+      button.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="4.25"></circle>
+          <path d="M12 2.75v3.5M12 17.75v3.5M2.75 12h3.5M17.75 12h3.5"></path>
+        </svg>
+      `;
+
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.on(button, 'click', (event) => {
+        L.DomEvent.stop(event);
+        focusOnUserLocation();
+      });
+
+      return container;
+    }
+  });
+
+  const locateControl = new LocateControl();
+  locateControl.addTo(map);
+
+  const topLeftControls = map.getContainer().querySelector('.leaflet-top.leaflet-left');
+  const locateContainer = locateControl.getContainer();
+  const zoomContainer = topLeftControls?.querySelector('.leaflet-control-zoom');
+
+  if (topLeftControls && locateContainer && zoomContainer) {
+    topLeftControls.insertBefore(locateContainer, zoomContainer);
+  }
+};
+
+createLocateControl();
+
+function getAnalysisZoneColor(score) {
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) return '#94a3b8';
+  const clampedScore = Math.max(0, Math.min(100, numericScore));
+
+  const interpolateChannel = (start, end, ratio) => Math.round(start + ((end - start) * ratio));
+  const hexToRgb = (hex) => ({
+    r: Number.parseInt(hex.slice(1, 3), 16),
+    g: Number.parseInt(hex.slice(3, 5), 16),
+    b: Number.parseInt(hex.slice(5, 7), 16)
+  });
+  const rgbToHex = ({ r, g, b }) => `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+
+  const red = hexToRgb('#ef4444');
+  const orange = hexToRgb('#f59e0b');
+  const green = hexToRgb('#22c55e');
+
+  if (clampedScore <= 50) {
+    const ratio = clampedScore / 50;
+    return rgbToHex({
+      r: interpolateChannel(red.r, orange.r, ratio),
+      g: interpolateChannel(red.g, orange.g, ratio),
+      b: interpolateChannel(red.b, orange.b, ratio)
+    });
+  }
+
+  const ratio = (clampedScore - 50) / 50;
+  return rgbToHex({
+    r: interpolateChannel(orange.r, green.r, ratio),
+    g: interpolateChannel(orange.g, green.g, ratio),
+    b: interpolateChannel(orange.b, green.b, ratio)
+  });
+}
+
+function getAnalysisZoneLevelLabel(score) {
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) return 'Ukjent';
+  if (numericScore >= 75) return 'Høy';
+  if (numericScore >= 50) return 'Middels';
+  return 'Lav';
+}
+
+function getAnalysisZoneCellSize(zoom) {
+  if (zoom >= 13) return 1200;
+  if (zoom >= 11) return 2500;
+  if (zoom >= 9) return 5000;
+  if (zoom >= 7) return 10000;
+  return 20000;
+}
+
+function createAnalysisZoneTooltip(properties = {}) {
+  const score = Number(properties.score ?? 0);
+  const maxScore = Number(properties.max_score ?? 100);
+  const label = getAnalysisZoneLevelLabel(score);
+  return `Beredskapsscore: ${score} / ${maxScore} (${label})`;
+}
+
 const layers = {
   hospitals: L.layerGroup(),
   legevakt: L.layerGroup(),
   brannstasjoner: L.featureGroup(),
-  shelters: L.layerGroup()
+  shelters: L.layerGroup(),
+  analysisZones: L.geoJSON(null, {
+    pane: 'analysisZonesPane',
+    style: (feature) => {
+      const properties = feature?.properties || {};
+      const color = getAnalysisZoneColor(properties.score);
+      return {
+        color,
+        weight: 1,
+        opacity: 0.4,
+        fillColor: color,
+        fillOpacity: 0.22
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const properties = feature?.properties || {};
+      const tooltip = createAnalysisZoneTooltip(properties);
+      layer.bindTooltip(tooltip, { sticky: true, opacity: 0.95 });
+      layer.bindPopup(`
+        <div style="min-width: 180px;">
+          <strong>Beredskapssone</strong><br/>
+          <span style="color:#6b7280;">${escapeHtml(getAnalysisZoneLevelLabel(properties.score))}</span>
+          <div style="margin-top:8px;"><strong>${Number(properties.score || 0)} / ${Number(properties.max_score || 100)} poeng</strong></div>
+        </div>
+      `);
+    }
+  })
 };
 
 const initLayerToggle = (checkboxId, layer) => {
@@ -157,8 +372,9 @@ const applyLayerVisibility = () => {
   const zoom = map.getZoom();
   const showIcons = zoom >= 8;
 
-  const setLayer = (id, layer) => {
-    const shouldShow = showIcons && isLayerChecked(id);
+  const setLayer = (id, layer, options = {}) => {
+    const { requiresIconZoom = true } = options;
+    const shouldShow = (requiresIconZoom ? showIcons : true) && isLayerChecked(id);
     if (shouldShow) {
       map.addLayer(layer);
     } else {
@@ -170,6 +386,7 @@ const applyLayerVisibility = () => {
   setLayer('layer-legevakt', layers.legevakt);
   setLayer('layer-brannstasjoner', layers.brannstasjoner);
   setLayer('layer-tilfluktsrom', layers.shelters);
+  setLayer('layer-analysis-zones', layers.analysisZones, { requiresIconZoom: false });
 };
 
 const setLoadingState = (isLoading) => {
@@ -202,6 +419,26 @@ const distanceValueLabel = document.getElementById('distance-value');
 const applyDistanceFilterButton = document.getElementById('apply-distance-filter');
 const clearDistanceFilterButton = document.getElementById('clear-distance-filter');
 const distanceFilterResults = document.getElementById('distance-filter-results');
+const locationAnalysisContainer = document.getElementById('location-analysis');
+const analysisZoneLegend = document.getElementById('analysis-zone-legend');
+const analysisLayer = L.layerGroup().addTo(map);
+let analysisRequestToken = 0;
+let activeSelectionToken = 0;
+let analysisZonesRequestToken = 0;
+let analysisZonesRefreshTimer = null;
+const analysisState = {
+  loading: false,
+  error: '',
+  data: null,
+  label: null
+};
+
+const analysisCategoryStyles = {
+  hospital: { color: '#c0392b', short: 'S' },
+  legevakt: { color: '#27ae60', short: 'L' },
+  fire_station: { color: '#f77f00', short: 'B' },
+  shelter: { color: '#d97706', short: 'T' }
+};
 
 const formatRouteDistance = (distanceMeters) => {
   const km = Number(distanceMeters) / 1000;
@@ -271,6 +508,289 @@ const formatDistanceKm = (distanceKm) => {
   if (distanceKm >= 10) return distanceKm.toFixed(1);
   return distanceKm.toFixed(2);
 };
+
+const formatAnalysisDistance = (distanceMeters) => {
+  const meters = Number(distanceMeters);
+  if (!Number.isFinite(meters)) return '';
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  const km = meters / 1000;
+  if (km >= 10) return `${km.toFixed(1)} km`;
+  return `${km.toFixed(2)} km`;
+};
+
+const formatAnalysisCoordinates = (point) => {
+  if (!point) return '';
+  const lat = Number(point.lat);
+  const lon = Number(point.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
+  return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+};
+
+const describeAnalysisScore = (score) => {
+  if (score >= 80) return 'Svært god nærhet til beredskapsressurser.';
+  if (score >= 60) return 'God nærhet til beredskapsressurser.';
+  if (score >= 40) return 'Moderat nærhet til beredskapsressurser.';
+  return 'Svak nærhet til beredskapsressurser.';
+};
+
+const buildAnalysisStatusText = (item) => {
+  const distanceMeters = Number(item?.distance_meters);
+  const idealDistance = Number(item?.ideal_distance_m);
+  const maxDistance = Number(item?.max_distance_m);
+
+  if (!Number.isFinite(distanceMeters) || !Number.isFinite(maxDistance)) {
+    return '';
+  }
+  if (Number.isFinite(idealDistance) && distanceMeters <= idealDistance) {
+    return `Full score ved ${formatAnalysisDistance(idealDistance)} eller nærmere.`;
+  }
+  if (distanceMeters <= maxDistance) {
+    return `Innenfor akseptabel avstand. Poengene faller gradvis frem til ${formatAnalysisDistance(maxDistance)}.`;
+  }
+  return `Utenfor anbefalt avstand på ${formatAnalysisDistance(maxDistance)}.`;
+};
+
+const clearAnalysisHighlights = () => {
+  analysisLayer.clearLayers();
+};
+
+const renderAnalysisHighlights = (data) => {
+  clearAnalysisHighlights();
+  const clickedPoint = data?.clicked_point;
+  const breakdown = Array.isArray(data?.breakdown) ? data.breakdown : [];
+  if (!clickedPoint || !breakdown.length) return;
+
+  const clickedLat = Number(clickedPoint.lat);
+  const clickedLon = Number(clickedPoint.lon);
+  if (!Number.isFinite(clickedLat) || !Number.isFinite(clickedLon)) return;
+
+  L.circle([clickedLat, clickedLon], {
+    radius: 150,
+    color: '#0f172a',
+    weight: 2,
+    opacity: 0.8,
+    fillOpacity: 0
+  }).addTo(analysisLayer);
+
+  breakdown.forEach((item) => {
+    const lat = Number(item?.lat);
+    const lon = Number(item?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    const style = analysisCategoryStyles[item.key] || { color: '#2563eb', short: '?' };
+
+    L.polyline([[clickedLat, clickedLon], [lat, lon]], {
+      color: style.color,
+      weight: 2,
+      opacity: 0.8,
+      dashArray: '7 6'
+    }).addTo(analysisLayer);
+
+    const marker = L.circleMarker([lat, lon], {
+      radius: 10,
+      color: style.color,
+      weight: 3,
+      fillColor: '#ffffff',
+      fillOpacity: 0.96
+    }).addTo(analysisLayer);
+
+    marker.bindTooltip(`${item.label}: ${formatAnalysisDistance(item.distance_meters)}`, {
+      direction: 'top',
+      opacity: 0.95
+    });
+    marker.bindPopup(`
+      <div style="min-width: 190px;">
+        <strong>${escapeHtml(item.name || item.label || 'Treff')}</strong><br/>
+        <span style="color:#6b7280;">${escapeHtml(item.description || '')}</span>
+        <div style="margin-top:8px;">
+          <strong>${Number(item.score || 0)} / ${Number(item.max_score || 0)} poeng</strong><br/>
+          ${escapeHtml(formatAnalysisDistance(item.distance_meters))}
+        </div>
+      </div>
+    `);
+  });
+};
+
+const renderLocationAnalysis = () => {
+  if (!locationAnalysisContainer) return;
+
+  if (analysisState.loading) {
+    locationAnalysisContainer.innerHTML = '<div class="analysis-panel__status">Analyserer punktet i databasen...</div>';
+    return;
+  }
+
+  if (analysisState.error) {
+    locationAnalysisContainer.innerHTML = `<div class="analysis-panel__error">${escapeHtml(analysisState.error)}</div>`;
+    return;
+  }
+
+  if (!analysisState.data) {
+    locationAnalysisContainer.innerHTML = `
+      <div class="analysis-panel__placeholder">
+        Klikk i kartet eller søk adresse for å beregne beredskapsscore.
+      </div>
+    `;
+    return;
+  }
+
+  const score = Number(analysisState.data.score || 0);
+  const maxScore = Number(analysisState.data.max_score || 100);
+  const title = analysisState.label?.title || 'Valgt punkt';
+  const meta = analysisState.label?.meta || formatAnalysisCoordinates(analysisState.data.clicked_point);
+  const breakdown = Array.isArray(analysisState.data.breakdown) ? analysisState.data.breakdown : [];
+
+  const breakdownHtml = breakdown.map((item) => {
+    const style = analysisCategoryStyles[item.key] || { color: '#2563eb', short: '?' };
+    const itemScore = Number(item.score || 0);
+    const itemMaxScore = Number(item.max_score || 0);
+    const ratioPercent = itemMaxScore > 0
+      ? Math.max(0, Math.min(100, (itemScore / itemMaxScore) * 100))
+      : 0;
+
+    return `
+      <div class="analysis-panel__item">
+        <div class="analysis-panel__item-top">
+          <div>
+            <div class="analysis-panel__item-label" style="color: ${style.color};">
+              ${escapeHtml(item.label || 'Kategori')}
+            </div>
+            <div class="analysis-panel__item-target">${escapeHtml(item.name || item.label || 'Treff')}</div>
+          </div>
+          <div class="analysis-panel__item-score">${itemScore} / ${itemMaxScore}</div>
+        </div>
+        <div class="analysis-panel__meter">
+          <span style="width: ${ratioPercent}%; background: ${style.color};"></span>
+        </div>
+        <div class="analysis-panel__item-meta">${escapeHtml(buildAnalysisStatusText(item))}</div>
+        <div class="analysis-panel__item-submeta">
+          ${escapeHtml(formatAnalysisDistance(item.distance_meters))}
+          ${item.description ? ` • ${escapeHtml(item.description)}` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  locationAnalysisContainer.innerHTML = `
+    <div class="analysis-panel__header">
+      <div>
+        <div class="analysis-panel__eyebrow">Punktanalyse</div>
+        <div class="analysis-panel__place">${escapeHtml(title)}</div>
+        <div class="analysis-panel__place-meta">${escapeHtml(meta)}</div>
+      </div>
+      <div class="analysis-panel__total">
+        ${score}
+        <span>/ ${maxScore}</span>
+      </div>
+    </div>
+    <div class="analysis-panel__summary">${escapeHtml(describeAnalysisScore(score))}</div>
+    <div class="analysis-panel__body">${breakdownHtml}</div>
+  `;
+};
+
+const setLocationAnalysisState = (nextState = {}) => {
+  Object.assign(analysisState, nextState);
+  renderLocationAnalysis();
+};
+
+const updateLocationAnalysisLabel = (label) => {
+  analysisState.label = label;
+  renderLocationAnalysis();
+};
+
+const fetchLocationAnalysis = async (coords, label = null) => {
+  if (!coords) return;
+  const requestToken = ++analysisRequestToken;
+
+  setLocationAnalysisState({
+    loading: true,
+    error: '',
+    data: null,
+    label: label || analysisState.label
+  });
+  clearAnalysisHighlights();
+
+  try {
+    const response = await fetch(`/api/location-analysis?lat=${coords.lat}&lon=${coords.lon}`);
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Analyseoppslag feilet.');
+    }
+    if (requestToken !== analysisRequestToken) return;
+
+    setLocationAnalysisState({
+      loading: false,
+      error: '',
+      data: payload,
+      label: label || analysisState.label
+    });
+    renderAnalysisHighlights(payload);
+  } catch (error) {
+    if (requestToken !== analysisRequestToken) return;
+    clearAnalysisHighlights();
+    setLocationAnalysisState({
+      loading: false,
+      data: null,
+      error: error instanceof Error ? error.message : 'Klarte ikke analysere punktet.'
+    });
+  }
+};
+
+const setAnalysisZoneLegendVisibility = (visible) => {
+  if (!analysisZoneLegend) return;
+  analysisZoneLegend.classList.toggle('visible', visible);
+  analysisZoneLegend.setAttribute('aria-hidden', visible ? 'false' : 'true');
+};
+
+const clearAnalysisZones = () => {
+  layers.analysisZones.clearLayers();
+};
+
+const fetchAnalysisZones = async () => {
+  if (!isLayerChecked('layer-analysis-zones')) {
+    clearAnalysisZones();
+    setAnalysisZoneLegendVisibility(false);
+    return;
+  }
+
+  setAnalysisZoneLegendVisibility(true);
+  applyLayerVisibility();
+
+  const bounds = map.getBounds();
+  const cellSizeM = getAnalysisZoneCellSize(map.getZoom());
+  const requestToken = ++analysisZonesRequestToken;
+
+  try {
+    const response = await fetch(
+      `/api/location-analysis-grid?min_lat=${bounds.getSouth()}&min_lon=${bounds.getWest()}&max_lat=${bounds.getNorth()}&max_lon=${bounds.getEast()}&cell_size_m=${cellSizeM}`
+    );
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Kunne ikke laste beredskapssoner.');
+    }
+    if (requestToken !== analysisZonesRequestToken) return;
+
+    clearAnalysisZones();
+    layers.analysisZones.addData(payload);
+  } catch (error) {
+    if (requestToken !== analysisZonesRequestToken) return;
+    clearAnalysisZones();
+    console.error('Klarte ikke oppdatere beredskapssoner:', error);
+  }
+};
+
+const scheduleAnalysisZoneRefresh = () => {
+  clearTimeout(analysisZonesRefreshTimer);
+  if (!isLayerChecked('layer-analysis-zones')) {
+    clearAnalysisZones();
+    setAnalysisZoneLegendVisibility(false);
+    return;
+  }
+  analysisZonesRefreshTimer = setTimeout(() => {
+    fetchAnalysisZones();
+  }, 250);
+};
+
+renderLocationAnalysis();
 
 const setDistanceFilterResultsVisibility = (visible) => {
   if (!distanceFilterResults) return;
@@ -441,6 +961,16 @@ const initializeDistanceFilterControls = () => {
   }
 };
 
+const initializeAnalysisZoneControls = () => {
+  const checkbox = document.getElementById('layer-analysis-zones');
+  if (!checkbox) return;
+  checkbox.addEventListener('change', () => {
+    applyLayerVisibility();
+    scheduleAnalysisZoneRefresh();
+  });
+  setAnalysisZoneLegendVisibility(checkbox.checked);
+};
+
 const clearSuggestions = (target) => {
   if (!target) return;
   target.innerHTML = '';
@@ -495,6 +1025,7 @@ const setActiveSuggestion = (index, target) => {
 const applyAddressSelection = (item, targetInput, targetSuggestions) => {
   const coords = extractCoordinates(item);
   if (!coords) return;
+  activeSelectionToken += 1;
   const label = formatAddressLabel(item);
   if (targetInput) {
     targetInput.value = label.title;
@@ -516,6 +1047,8 @@ const applyAddressSelection = (item, targetInput, targetSuggestions) => {
     </div>
   `).openPopup();
   map.setView([coords.lat, coords.lon], Math.max(map.getZoom(), 14));
+  updateLocationAnalysisLabel(label);
+  fetchLocationAnalysis(coords, label);
 };
 
 const renderSuggestions = (items, target, targetInput) => {
@@ -664,18 +1197,27 @@ const reverseGeocode = async (lat, lon) => {
 
 map.on('click', async (event) => {
   const { lat, lng } = event.latlng;
+  const selectionToken = ++activeSelectionToken;
   if (addressMarker) addressLayer.removeLayer(addressMarker);
   addressMarker = L.marker([lat, lng]).addTo(addressLayer);
-  fromSelection = { coords: { lat, lon: lng }, label: { title: '', meta: '' } };
+  const fallbackLabel = {
+    title: 'Valgt punkt',
+    meta: formatAnalysisCoordinates({ lat, lon: lng })
+  };
+  fromSelection = { coords: { lat, lon: lng }, label: fallbackLabel };
+  updateLocationAnalysisLabel(fallbackLabel);
+  fetchLocationAnalysis({ lat, lon: lng }, fallbackLabel);
 
   const address = await reverseGeocode(lat, lng);
+  if (selectionToken !== activeSelectionToken) return;
   if (address) {
     const label = formatAddressLabel(address);
     fromSelection.label = label;
     if (addressInput) addressInput.value = label.title;
+    updateLocationAnalysisLabel(label);
     addressMarker.bindPopup(buildRoutePopup(label.title, label.meta)).openPopup();
   } else {
-    addressMarker.bindPopup(buildRoutePopup('', '')).openPopup();
+    addressMarker.bindPopup(buildRoutePopup(fallbackLabel.title, fallbackLabel.meta)).openPopup();
   }
 });
 
@@ -829,9 +1371,15 @@ initLayerToggle('layer-hospitals', layers.hospitals);
 initLayerToggle('layer-legevakt', layers.legevakt);
 initLayerToggle('layer-brannstasjoner', layers.brannstasjoner);
 initLayerToggle('layer-tilfluktsrom', layers.shelters);
+initLayerToggle('layer-analysis-zones', layers.analysisZones);
 applyLayerVisibility();
+initializeAnalysisZoneControls();
 
-map.on('zoomend', updateMarkerSizes);
+map.on('zoomend', () => {
+  updateMarkerSizes();
+  scheduleAnalysisZoneRefresh();
+});
+map.on('moveend', scheduleAnalysisZoneRefresh);
 initializeDistanceFilterControls();
 
 // Beholder standard zoomkontroller

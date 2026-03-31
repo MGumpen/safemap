@@ -72,6 +72,304 @@ SHELTER_ORDER_PROJECTION = {
 _shelter_cache_lock = Lock()
 _shelter_geojson_cache: Dict[str, Any] = {"geojson": None, "expires_at": 0.0}
 _shelter_transformer = Transformer.from_crs(25833, 4326, always_xy=True)
+_analysis_function_lock = Lock()
+_analysis_function_ready = False
+
+LOCATION_ANALYSIS_FUNCTION_SQL = """
+CREATE OR REPLACE FUNCTION public.analyze_location_score(
+    input_lat DOUBLE PRECISION,
+    input_lon DOUBLE PRECISION
+)
+RETURNS JSONB
+LANGUAGE sql
+AS $$
+WITH origin AS (
+    SELECT
+        ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326) AS geom_4326,
+        ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography AS geog_4326
+),
+nearest_hospital AS (
+    SELECT
+        1 AS sort_order,
+        'hospital'::text AS key,
+        'Sykehus'::text AS label,
+        h.navn AS name,
+        COALESCE(h.adresse, h.poststed, h.kommune, 'Sykehus') AS description,
+        ST_Y(h.geom) AS lat,
+        ST_X(h.geom) AS lon,
+        ST_Distance(h.geom::geography, o.geog_4326) AS distance_meters,
+        ST_DWithin(h.geom::geography, o.geog_4326, 80000) AS within_max_distance,
+        20::integer AS max_score,
+        20000::double precision AS ideal_distance_m,
+        80000::double precision AS max_distance_m
+    FROM sykehus_points h
+    CROSS JOIN origin o
+    ORDER BY ST_Distance(h.geom::geography, o.geog_4326)
+    LIMIT 1
+),
+nearest_legevakt AS (
+    SELECT
+        2 AS sort_order,
+        'legevakt'::text AS key,
+        'Legevakt'::text AS label,
+        l.navn AS name,
+        COALESCE(l.adresse, l.poststed, l.kommune, 'Legevakt') AS description,
+        ST_Y(l.geom) AS lat,
+        ST_X(l.geom) AS lon,
+        ST_Distance(l.geom::geography, o.geog_4326) AS distance_meters,
+        ST_DWithin(l.geom::geography, o.geog_4326, 30000) AS within_max_distance,
+        25::integer AS max_score,
+        8000::double precision AS ideal_distance_m,
+        30000::double precision AS max_distance_m
+    FROM legevakt_points l
+    CROSS JOIN origin o
+    ORDER BY ST_Distance(l.geom::geography, o.geog_4326)
+    LIMIT 1
+),
+nearest_brannstasjon AS (
+    SELECT
+        3 AS sort_order,
+        'fire_station'::text AS key,
+        'Brannstasjon'::text AS label,
+        COALESCE(b."brannstasjon", 'Brannstasjon') AS name,
+        COALESCE(b."brannvesen", b."objtype", 'Brannstasjon') AS description,
+        ST_Y(ST_Transform(b."SHAPE", 4326)) AS lat,
+        ST_X(ST_Transform(b."SHAPE", 4326)) AS lon,
+        ST_Distance(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326) AS distance_meters,
+        ST_DWithin(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326, 10000) AS within_max_distance,
+        25::integer AS max_score,
+        2000::double precision AS ideal_distance_m,
+        10000::double precision AS max_distance_m
+    FROM "Brannstasjoner" b
+    CROSS JOIN origin o
+    ORDER BY ST_Distance(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326)
+    LIMIT 1
+),
+nearest_shelter AS (
+    SELECT
+        4 AS sort_order,
+        'shelter'::text AS key,
+        'Tilfluktsrom'::text AS label,
+        COALESCE(t.adresse, 'Tilfluktsrom') AS name,
+        CASE
+            WHEN t.plasser IS NOT NULL THEN CONCAT(t.plasser, ' plasser')
+            ELSE 'Tilfluktsrom'
+        END AS description,
+        ST_Y(ST_Transform(ST_GeomFromText(t.wkt_geom, 25833), 4326)) AS lat,
+        ST_X(ST_Transform(ST_GeomFromText(t.wkt_geom, 25833), 4326)) AS lon,
+        ST_Distance(
+            ST_Transform(ST_GeomFromText(t.wkt_geom, 25833), 4326)::geography,
+            o.geog_4326
+        ) AS distance_meters,
+        ST_DWithin(
+            ST_Transform(ST_GeomFromText(t.wkt_geom, 25833), 4326)::geography,
+            o.geog_4326,
+            5000
+        ) AS within_max_distance,
+        30::integer AS max_score,
+        1000::double precision AS ideal_distance_m,
+        5000::double precision AS max_distance_m
+    FROM tilfluktsrom t
+    CROSS JOIN origin o
+    ORDER BY ST_Distance(
+        ST_Transform(ST_GeomFromText(t.wkt_geom, 25833), 4326)::geography,
+        o.geog_4326
+    )
+    LIMIT 1
+),
+nearest_targets AS (
+    SELECT * FROM nearest_hospital
+    UNION ALL
+    SELECT * FROM nearest_legevakt
+    UNION ALL
+    SELECT * FROM nearest_brannstasjon
+    UNION ALL
+    SELECT * FROM nearest_shelter
+),
+scored AS (
+    SELECT
+        sort_order,
+        key,
+        label,
+        name,
+        description,
+        lat,
+        lon,
+        ROUND(distance_meters)::integer AS distance_meters,
+        ROUND((distance_meters / 1000.0)::numeric, 2) AS distance_km,
+        within_max_distance,
+        max_score,
+        ideal_distance_m::integer AS ideal_distance_m,
+        max_distance_m::integer AS max_distance_m,
+        CASE
+            WHEN distance_meters <= ideal_distance_m THEN max_score
+            WHEN distance_meters >= max_distance_m THEN 0
+            ELSE ROUND(
+                max_score * (
+                    (max_distance_m - distance_meters) / NULLIF(max_distance_m - ideal_distance_m, 0)
+                )
+            )::integer
+        END AS score
+    FROM nearest_targets
+)
+SELECT jsonb_build_object(
+    'clicked_point',
+    jsonb_build_object(
+        'lat', input_lat,
+        'lon', input_lon
+    ),
+    'score',
+    COALESCE((SELECT SUM(score) FROM scored), 0),
+    'max_score',
+    100,
+    'breakdown',
+    COALESCE(
+        (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'key', key,
+                    'label', label,
+                    'name', name,
+                    'description', description,
+                    'lat', lat,
+                    'lon', lon,
+                    'distance_meters', distance_meters,
+                    'distance_km', distance_km,
+                    'within_max_distance', within_max_distance,
+                    'score', score,
+                    'max_score', max_score,
+                    'ideal_distance_m', ideal_distance_m,
+                    'max_distance_m', max_distance_m,
+                    'score_ratio', ROUND(score::numeric / NULLIF(max_score, 0), 4)
+                )
+                ORDER BY sort_order
+            )
+            FROM scored
+        ),
+        '[]'::jsonb
+    )
+);
+$$;
+"""
+
+LOCATION_ANALYSIS_GRID_FUNCTION_SQL = """
+CREATE OR REPLACE FUNCTION public.analyze_location_grid(
+    min_lat DOUBLE PRECISION,
+    min_lon DOUBLE PRECISION,
+    max_lat DOUBLE PRECISION,
+    max_lon DOUBLE PRECISION,
+    requested_cell_size_m INTEGER DEFAULT 2000,
+    max_cells INTEGER DEFAULT 144
+)
+RETURNS JSONB
+LANGUAGE sql
+AS $$
+WITH normalized AS (
+    SELECT
+        LEAST(min_lat, max_lat) AS min_lat,
+        LEAST(min_lon, max_lon) AS min_lon,
+        GREATEST(min_lat, max_lat) AS max_lat,
+        GREATEST(min_lon, max_lon) AS max_lon,
+        GREATEST(500, LEAST(requested_cell_size_m, 25000))::double precision AS requested_cell_size_m,
+        GREATEST(16, LEAST(max_cells, 400))::integer AS max_cells
+),
+bounds AS (
+    SELECT
+        ST_Transform(ST_MakeEnvelope(min_lon, min_lat, max_lon, max_lat, 4326), 3857) AS geom_3857,
+        requested_cell_size_m,
+        max_cells,
+        GREATEST(1, FLOOR(SQRT(max_cells::numeric)))::integer AS max_side_cells
+    FROM normalized
+),
+grid_meta AS (
+    SELECT
+        geom_3857,
+        GREATEST(
+            requested_cell_size_m,
+            (ST_XMax(geom_3857) - ST_XMin(geom_3857)) / max_side_cells,
+            (ST_YMax(geom_3857) - ST_YMin(geom_3857)) / max_side_cells
+        ) AS actual_cell_size_m,
+        ST_XMin(geom_3857) AS min_x,
+        ST_XMax(geom_3857) AS max_x,
+        ST_YMin(geom_3857) AS min_y,
+        ST_YMax(geom_3857) AS max_y
+    FROM bounds
+),
+cells AS (
+    SELECT
+        ST_MakeEnvelope(
+            meta.min_x + (gx * meta.actual_cell_size_m),
+            meta.min_y + (gy * meta.actual_cell_size_m),
+            LEAST(meta.min_x + ((gx + 1) * meta.actual_cell_size_m), meta.max_x),
+            LEAST(meta.min_y + ((gy + 1) * meta.actual_cell_size_m), meta.max_y),
+            3857
+        ) AS geom_3857,
+        meta.actual_cell_size_m
+    FROM grid_meta meta
+    CROSS JOIN LATERAL generate_series(
+        0,
+        GREATEST(0, CEIL((meta.max_x - meta.min_x) / meta.actual_cell_size_m)::integer - 1)
+    ) AS gx
+    CROSS JOIN LATERAL generate_series(
+        0,
+        GREATEST(0, CEIL((meta.max_y - meta.min_y) / meta.actual_cell_size_m)::integer - 1)
+    ) AS gy
+),
+cells_wgs84 AS (
+    SELECT
+        ST_Transform(geom_3857, 4326) AS geom_4326,
+        ST_Transform(ST_Centroid(geom_3857), 4326) AS centroid_4326,
+        actual_cell_size_m
+    FROM cells
+),
+scored AS (
+    SELECT
+        geom_4326,
+        actual_cell_size_m,
+        public.analyze_location_score(
+            ST_Y(centroid_4326),
+            ST_X(centroid_4326)
+        ) AS analysis
+    FROM cells_wgs84
+)
+SELECT jsonb_build_object(
+    'type',
+    'FeatureCollection',
+    'cell_size_m',
+    COALESCE((SELECT ROUND(MAX(actual_cell_size_m))::integer FROM scored), 0),
+    'feature_count',
+    COALESCE((SELECT COUNT(*) FROM scored), 0),
+    'features',
+    COALESCE(
+        (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'type',
+                    'Feature',
+                    'geometry',
+                    ST_AsGeoJSON(geom_4326)::jsonb,
+                    'properties',
+                    jsonb_build_object(
+                        'score', COALESCE((analysis->>'score')::integer, 0),
+                        'max_score', COALESCE((analysis->>'max_score')::integer, 100),
+                        'score_label',
+                        CASE
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 80 THEN 'Svært god'
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 60 THEN 'God'
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 40 THEN 'Moderat'
+                            WHEN COALESCE((analysis->>'score')::integer, 0) >= 20 THEN 'Lav'
+                            ELSE 'Svak'
+                        END
+                    )
+                )
+            )
+            FROM scored
+        ),
+        '[]'::jsonb
+    )
+);
+$$;
+"""
 
 
 def _build_https_ssl_context() -> ssl.SSLContext:
@@ -313,6 +611,30 @@ def _load_shelter_points() -> List[Dict[str, Any]]:
     return points
 
 
+def _ensure_location_analysis_function() -> None:
+    global _analysis_function_ready
+    if _analysis_function_ready:
+        return
+
+    with _analysis_function_lock:
+        if _analysis_function_ready:
+            return
+
+        connection = _get_db_connection()
+        try:
+            cursor = connection.cursor()
+            cursor.execute(LOCATION_ANALYSIS_FUNCTION_SQL)
+            cursor.execute(LOCATION_ANALYSIS_GRID_FUNCTION_SQL)
+            connection.commit()
+            cursor.close()
+            _analysis_function_ready = True
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+
 @app.get("/api/brannstasjoner")
 @app.get("/api/Brannstasjoner")
 def get_brannstasjoner():
@@ -469,3 +791,78 @@ def get_nearest_point(type: str, lat: float, lon: float):
 
     closest = min(points, key=lambda p: _haversine(lat, lon, p["lat"], p["lon"]))
     return closest
+
+
+@app.get("/api/location-analysis")
+def get_location_analysis(lat: float, lon: float):
+    connection = None
+    cursor = None
+
+    try:
+        _ensure_location_analysis_function()
+        connection = _get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute("SELECT public.analyze_location_score(%s, %s)", (lat, lon))
+        row = cursor.fetchone()
+        if not row or row[0] is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Ingen analysedata tilgjengelig for dette punktet."},
+            )
+
+        payload = row[0]
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        return JSONResponse(content=payload)
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Klarte ikke analysere punktet: {exc}"},
+        )
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+
+@app.get("/api/location-analysis-grid")
+def get_location_analysis_grid(
+    min_lat: float,
+    min_lon: float,
+    max_lat: float,
+    max_lon: float,
+    cell_size_m: int = 2000,
+):
+    connection = None
+    cursor = None
+
+    try:
+        _ensure_location_analysis_function()
+        connection = _get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT public.analyze_location_grid(%s, %s, %s, %s, %s)",
+            (min_lat, min_lon, max_lat, max_lon, cell_size_m),
+        )
+        row = cursor.fetchone()
+        if not row or row[0] is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Ingen analysedata tilgjengelig for dette kartutsnittet."},
+            )
+
+        payload = row[0]
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        return JSONResponse(content=payload)
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Klarte ikke analysere kartutsnittet: {exc}"},
+        )
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()

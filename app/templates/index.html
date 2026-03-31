@@ -15,7 +15,7 @@
     </changeLog>
     -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="stylesheet" href="/static/css/style.css?v=6" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
   </head>
@@ -35,7 +35,7 @@
         />
         <div class="address-suggestions" id="address-suggestions" role="listbox" aria-label="Adresseforslag"></div>
       </div>
-      <button class="app-header__menu" aria-label="Åpne meny">☰</button>
+      <!-- <button class="app-header__menu" aria-label="Åpne meny">☰</button> -->
     </header>
     <aside id="layer-controls" class="layer-controls">
       <div class="layer-controls__title">Filter</div>
@@ -57,8 +57,21 @@
             <td>Tilfluktsrom</td>
             <td><input id="layer-tilfluktsrom" type="checkbox" checked /></td>
           </tr>
+          <tr>
+            <td>Beredskapssoner</td>
+            <td><input id="layer-analysis-zones" type="checkbox" /></td>
+          </tr>
         </tbody>
       </table>
+      <div id="analysis-zone-legend" class="analysis-zone-legend" aria-hidden="true">
+        <div class="analysis-zone-legend__title">Beredskapsscore</div>
+        <div class="analysis-zone-legend__scale" aria-hidden="true"></div>
+        <div class="analysis-zone-legend__labels">
+          <span>0 (Lav)</span>
+          <span>50</span>
+          <span>100 (Høy)</span>
+        </div>
+      </div>
       
       <div class="layer-controls__divider"></div>
       
@@ -86,8 +99,21 @@
         </button>
         <div id="distance-filter-results" class="distance-filter__results"></div>
       </div>
+
+      <div class="layer-controls__divider"></div>
+
+      <div class="layer-controls__title">Punktanalyse</div>
+      <div
+        id="location-analysis"
+        class="analysis-panel"
+        aria-live="polite"
+      >
+        <div class="analysis-panel__placeholder">
+          Klikk i kartet eller søk adresse for å beregne beredskapsscore.
+        </div>
+      </div>
     </aside>
     <div id="map"></div>
-    <script src="/static/js/main.js?v=1"></script>
+    <script src="/static/js/main.js?v=7"></script>
   </body>
 </html>
