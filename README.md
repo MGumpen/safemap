@@ -362,3 +362,7 @@ https://github.com/MGumpen/safemap/issues/26#issue-3983429669
 ## Video av systemet oppgave 2
 https://github.com/MGumpen/safemap/issues/31
 
+## Notebook
+
+Se notebooken her:  
+[Åpne Jupyter Notebook](./Romlig_Analyse_1.ipynb)
