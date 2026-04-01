@@ -365,4 +365,4 @@ https://github.com/MGumpen/safemap/issues/31
 ## Notebook
 
 Se notebooken her:  
-[Åpne Jupyter Notebook](./Romlig_Analyse_1.ipynb)
+[Åpne Jupyter Notebook](./Romlig_Analyse-1.ipynb)
