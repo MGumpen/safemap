@@ -13,8 +13,9 @@ import math
 import ssl
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest, urlopen
@@ -85,6 +86,8 @@ _analysis_function_lock = Lock()
 _analysis_function_ready = False
 _walking_network_lock = Lock()
 _walking_network_cache: Dict[str, Any] = {"graph": None, "expires_at": 0.0}
+_static_points_cache_lock = Lock()
+_static_points_cache: Dict[str, Any] = {}
 
 LOCATION_ANALYSIS_FUNCTION_SQL = """
 CREATE OR REPLACE FUNCTION public.analyze_location_score(
@@ -652,11 +655,17 @@ def _load_walking_network_graph(force_refresh: bool = False) -> Dict[str, Any]:
     return graph
 
 
-def _fetch_nearest_walking_edges(lat: float, lon: float, limit: int = 4) -> List[Dict[str, Any]]:
-    connection = None
+def _fetch_nearest_walking_edges(
+    lat: float,
+    lon: float,
+    limit: int = 4,
+    connection: Optional[Any] = None,
+) -> List[Dict[str, Any]]:
+    owned_connection = connection is None
     cursor = None
     try:
-        connection = _get_db_connection()
+        if connection is None:
+            connection = _get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
             sql.SQL(
@@ -695,7 +704,7 @@ def _fetch_nearest_walking_edges(lat: float, lon: float, limit: int = 4) -> List
     finally:
         if cursor is not None:
             cursor.close()
-        if connection is not None:
+        if owned_connection and connection is not None:
             connection.close()
 
     if not rows:
@@ -704,7 +713,8 @@ def _fetch_nearest_walking_edges(lat: float, lon: float, limit: int = 4) -> List
             "Importer Vegnett Pluss-gangnettet til databasen for walking-ruting."
         )
 
-    candidates: List[Dict[str, Any]] = []
+    preferred_candidates: List[Dict[str, Any]] = []
+    fallback_candidates: List[Dict[str, Any]] = []
     for row in rows:
         (
             edge_id_raw,
@@ -724,35 +734,39 @@ def _fetch_nearest_walking_edges(lat: float, lon: float, limit: int = 4) -> List
             continue
 
         snap_distance_meters = float(snap_distance_raw or 0.0)
-        if snap_distance_meters > WALKING_MAX_SNAP_DISTANCE_METERS:
-            continue
 
         locate_ratio = float(locate_ratio_raw or 0.0)
         locate_ratio = max(0.0, min(1.0, locate_ratio))
         total_length_meters = float(length_raw or 0.0)
 
-        candidates.append(
-            {
-                "edge_id": str(edge_id_raw),
-                "source_node": str(source_node_raw),
-                "target_node": str(target_node_raw),
-                "total_length_meters": total_length_meters,
-                "locate_ratio": locate_ratio,
-                "snap_distance_meters": snap_distance_meters,
-                "edge_coords": _extract_coords_from_geometry(geometry_json),
-                "snap_coords": snap_coords,
-                "prefix_coords": _extract_coords_from_geometry(prefix_json),
-                "suffix_coords": _extract_coords_from_geometry(suffix_json),
-            }
-        )
+        candidate = {
+            "edge_id": str(edge_id_raw),
+            "source_node": str(source_node_raw),
+            "target_node": str(target_node_raw),
+            "total_length_meters": total_length_meters,
+            "locate_ratio": locate_ratio,
+            "snap_distance_meters": snap_distance_meters,
+            "is_off_network_connector": snap_distance_meters > WALKING_MAX_SNAP_DISTANCE_METERS,
+            "edge_coords": _extract_coords_from_geometry(geometry_json),
+            "snap_coords": snap_coords,
+            "prefix_coords": _extract_coords_from_geometry(prefix_json),
+            "suffix_coords": _extract_coords_from_geometry(suffix_json),
+        }
+        if snap_distance_meters <= WALKING_MAX_SNAP_DISTANCE_METERS:
+            preferred_candidates.append(candidate)
+        else:
+            fallback_candidates.append(candidate)
 
-    if not candidates:
+    if preferred_candidates:
+        return preferred_candidates
+
+    if fallback_candidates:
+        return fallback_candidates
+
+    if not preferred_candidates and not fallback_candidates:
         raise RuntimeError(
-            "Valgt punkt ligger for langt unna tilgjengelig Vegnett Pluss-gangnett. "
-            "Hent inn flere kommuner eller utvid gangnettet."
+            f"Fant ingen brukbare ganglenker i {WALKING_NETWORK_TABLE} for valgt punkt."
         )
-
-    return candidates
 
 
 def _fetch_nearest_walking_edge(lat: float, lon: float) -> Dict[str, Any]:
@@ -765,6 +779,38 @@ def _iter_walking_neighbors(
     node_id: str,
 ) -> List[Tuple[str, float, str, bool]]:
     return [*graph["adjacency"].get(node_id, []), *extra_adjacency.get(node_id, [])]
+
+
+def _run_walking_dijkstra(
+    graph: Dict[str, Any],
+    extra_adjacency: Dict[str, List[Tuple[str, float, str, bool]]],
+    start_node: str,
+    target_nodes: Optional[Iterable[str]] = None,
+) -> Tuple[Dict[str, float], Dict[str, Tuple[str, str, bool]]]:
+    distances: Dict[str, float] = {start_node: 0.0}
+    previous: Dict[str, Tuple[str, str, bool]] = {}
+    heap: List[Tuple[float, str]] = [(0.0, start_node)]
+    remaining_targets = {str(node) for node in (target_nodes or []) if node}
+
+    while heap:
+        current_distance, current_node = heapq.heappop(heap)
+        if current_distance > distances.get(current_node, float("inf")):
+            continue
+        if remaining_targets and current_node in remaining_targets:
+            remaining_targets.remove(current_node)
+            if not remaining_targets:
+                break
+        for neighbor, length_meters, edge_id, is_forward in _iter_walking_neighbors(
+            graph, extra_adjacency, current_node
+        ):
+            next_distance = current_distance + length_meters
+            if next_distance >= distances.get(neighbor, float("inf")):
+                continue
+            distances[neighbor] = next_distance
+            previous[neighbor] = (current_node, edge_id, is_forward)
+            heapq.heappush(heap, (next_distance, neighbor))
+
+    return distances, previous
 
 
 def _reconstruct_walking_path(
@@ -786,140 +832,176 @@ def _reconstruct_walking_path(
     return _merge_coord_segments(*segments)
 
 
-def _build_local_walking_route_for_pair(
+def _prepare_walking_origin_search(
     graph: Dict[str, Any],
-    start_snap: Dict[str, Any],
-    end_snap: Dict[str, Any],
     from_lat: float,
     from_lon: float,
-    to_lat: float,
-    to_lon: float,
-) -> Optional[Dict[str, Any]]:
+    target_nodes: Optional[Iterable[str]] = None,
+    connection: Optional[Any] = None,
+) -> Dict[str, Any]:
     extra_adjacency: Dict[str, List[Tuple[str, float, str, bool]]] = {}
     temp_edge_coords: Dict[str, List[List[float]]] = {}
     start_node = "__walk_start__"
-    end_node = "__walk_end__"
     start_point = [[from_lon, from_lat]]
-    end_point = [[to_lon, to_lat]]
+    start_candidates = _fetch_nearest_walking_edges(from_lat, from_lon, limit=4, connection=connection)
+    enriched_start_candidates: List[Dict[str, Any]] = []
 
-    start_snap_coord = start_snap["snap_coords"][-1]
-    end_snap_coord = end_snap["snap_coords"][-1]
-    start_connector_meters = _haversine(from_lat, from_lon, start_snap_coord[1], start_snap_coord[0]) * 1000
-    end_connector_meters = _haversine(to_lat, to_lon, end_snap_coord[1], end_snap_coord[0]) * 1000
+    for index, start_snap in enumerate(start_candidates):
+        start_snap_coord = start_snap["snap_coords"][-1]
+        start_connector_meters = _haversine(from_lat, from_lon, start_snap_coord[1], start_snap_coord[0]) * 1000
+        start_prefix_length = start_snap["locate_ratio"] * start_snap["total_length_meters"]
+        start_suffix_length = start_snap["total_length_meters"] - start_prefix_length
 
-    start_prefix_length = start_snap["locate_ratio"] * start_snap["total_length_meters"]
-    start_suffix_length = start_snap["total_length_meters"] - start_prefix_length
-    end_prefix_length = end_snap["locate_ratio"] * end_snap["total_length_meters"]
-    end_suffix_length = end_snap["total_length_meters"] - end_prefix_length
-
-    _build_temp_edge(
-        extra_adjacency,
-        temp_edge_coords,
-        "temp:start:source",
-        start_node,
-        start_snap["source_node"],
-        start_connector_meters + start_prefix_length,
-        _merge_coord_segments(
-            start_point,
-            [start_snap_coord],
-            _reverse_coords(start_snap["prefix_coords"]),
-        ),
-    )
-    _build_temp_edge(
-        extra_adjacency,
-        temp_edge_coords,
-        "temp:start:target",
-        start_node,
-        start_snap["target_node"],
-        start_connector_meters + start_suffix_length,
-        _merge_coord_segments(
-            start_point,
-            [start_snap_coord],
-            start_snap["suffix_coords"],
-        ),
-    )
-    _build_temp_edge(
-        extra_adjacency,
-        temp_edge_coords,
-        "temp:source:end",
-        end_snap["source_node"],
-        end_node,
-        end_connector_meters + end_prefix_length,
-        _merge_coord_segments(
-            end_snap["prefix_coords"],
-            [end_snap_coord],
-            end_point,
-        ),
-    )
-    _build_temp_edge(
-        extra_adjacency,
-        temp_edge_coords,
-        "temp:target:end",
-        end_snap["target_node"],
-        end_node,
-        end_connector_meters + end_suffix_length,
-        _merge_coord_segments(
-            _reverse_coords(end_snap["suffix_coords"]),
-            [end_snap_coord],
-            end_point,
-        ),
-    )
-
-    if start_snap["edge_id"] == end_snap["edge_id"]:
-        direct_edge_length = abs(start_snap["locate_ratio"] - end_snap["locate_ratio"]) * start_snap["total_length_meters"]
-        direct_edge_coords = _merge_coord_segments(
-            start_point,
-            [start_snap_coord],
-            [end_snap_coord],
-            end_point,
+        _build_temp_edge(
+            extra_adjacency,
+            temp_edge_coords,
+            f"temp:start:{index}:source",
+            start_node,
+            start_snap["source_node"],
+            start_connector_meters + start_prefix_length,
+            _merge_coord_segments(
+                start_point,
+                [start_snap_coord],
+                _reverse_coords(start_snap["prefix_coords"]),
+            ),
         )
         _build_temp_edge(
             extra_adjacency,
             temp_edge_coords,
-            "temp:start:end:direct",
+            f"temp:start:{index}:target",
             start_node,
-            end_node,
-            start_connector_meters + direct_edge_length + end_connector_meters,
-            direct_edge_coords,
+            start_snap["target_node"],
+            start_connector_meters + start_suffix_length,
+            _merge_coord_segments(
+                start_point,
+                [start_snap_coord],
+                start_snap["suffix_coords"],
+            ),
+        )
+        enriched_start_candidates.append(
+            {
+                **start_snap,
+                "snap_coord": start_snap_coord,
+                "start_connector_meters": start_connector_meters,
+            }
         )
 
-    distances: Dict[str, float] = {start_node: 0.0}
-    previous: Dict[str, Tuple[str, str, bool]] = {}
-    heap: List[Tuple[float, str]] = [(0.0, start_node)]
+    distances, previous = _run_walking_dijkstra(
+        graph,
+        extra_adjacency,
+        start_node,
+        target_nodes=target_nodes,
+    )
 
-    while heap:
-        current_distance, current_node = heapq.heappop(heap)
-        if current_distance > distances.get(current_node, float("inf")):
-            continue
-        if current_node == end_node:
-            break
-        for neighbor, length_meters, edge_id, is_forward in _iter_walking_neighbors(graph, extra_adjacency, current_node):
-            next_distance = current_distance + length_meters
-            if next_distance >= distances.get(neighbor, float("inf")):
-                continue
-            distances[neighbor] = next_distance
-            previous[neighbor] = (current_node, edge_id, is_forward)
-            heapq.heappush(heap, (next_distance, neighbor))
+    return {
+        "from_lat": from_lat,
+        "from_lon": from_lon,
+        "start_point": start_point,
+        "start_candidates": enriched_start_candidates,
+        "extra_adjacency": extra_adjacency,
+        "temp_edge_coords": temp_edge_coords,
+        "distances": distances,
+        "previous": previous,
+        "path_cache": {},
+    }
 
-    total_distance_meters = distances.get(end_node)
-    if total_distance_meters is None:
-        return None
 
-    route_coords = _reconstruct_walking_path(graph, temp_edge_coords, previous, end_node)
-    if len(route_coords) < 2:
-        return None
+def _get_walking_path_to_node(
+    graph: Dict[str, Any],
+    origin_search: Dict[str, Any],
+    node_id: str,
+) -> List[List[float]]:
+    path_cache = origin_search["path_cache"]
+    if node_id not in path_cache:
+        path_cache[node_id] = _reconstruct_walking_path(
+            graph,
+            origin_search["temp_edge_coords"],
+            origin_search["previous"],
+            node_id,
+        )
+    return path_cache[node_id]
 
+
+def _build_walking_route_payload(route_option: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "mode": "walking",
         "label": "Gangvei",
-        "distance_meters": round(total_distance_meters, 2),
-        "duration_seconds": round(total_distance_meters / max(WALKING_SPEED_MPS, 0.1), 2),
+        "distance_meters": round(float(route_option["distance_meters"]), 2),
+        "duration_seconds": round(float(route_option["distance_meters"]) / max(WALKING_SPEED_MPS, 0.1), 2),
         "geometry": {
             "type": "LineString",
-            "coordinates": route_coords,
+            "coordinates": route_option["coordinates"],
         },
         "provider_profile": f"local:{WALKING_NETWORK_TABLE}",
     }
+
+
+def _select_best_walking_route_option(
+    graph: Dict[str, Any],
+    origin_search: Dict[str, Any],
+    end_candidates: List[Dict[str, Any]],
+    to_lat: float,
+    to_lon: float,
+) -> Optional[Dict[str, Any]]:
+    best_option: Optional[Dict[str, Any]] = None
+    end_point = [[to_lon, to_lat]]
+    distances = origin_search["distances"]
+
+    def register_option(distance_meters: float, coordinates: List[List[float]]) -> None:
+        nonlocal best_option
+        if not math.isfinite(distance_meters) or len(coordinates) < 2:
+            return
+        if best_option is None or distance_meters < float(best_option["distance_meters"]):
+            best_option = {
+                "distance_meters": float(distance_meters),
+                "coordinates": coordinates,
+            }
+
+    for end_snap in end_candidates:
+        end_snap_coord = end_snap["snap_coords"][-1]
+        end_connector_meters = _haversine(to_lat, to_lon, end_snap_coord[1], end_snap_coord[0]) * 1000
+        end_prefix_length = end_snap["locate_ratio"] * end_snap["total_length_meters"]
+        end_suffix_length = end_snap["total_length_meters"] - end_prefix_length
+
+        distance_to_source = distances.get(end_snap["source_node"])
+        if distance_to_source is not None:
+            register_option(
+                distance_to_source + end_connector_meters + end_prefix_length,
+                _merge_coord_segments(
+                    _get_walking_path_to_node(graph, origin_search, end_snap["source_node"]),
+                    end_snap["prefix_coords"],
+                    [end_snap_coord],
+                    end_point,
+                ),
+            )
+
+        distance_to_target = distances.get(end_snap["target_node"])
+        if distance_to_target is not None:
+            register_option(
+                distance_to_target + end_connector_meters + end_suffix_length,
+                _merge_coord_segments(
+                    _get_walking_path_to_node(graph, origin_search, end_snap["target_node"]),
+                    _reverse_coords(end_snap["suffix_coords"]),
+                    [end_snap_coord],
+                    end_point,
+                ),
+            )
+
+        for start_snap in origin_search["start_candidates"]:
+            if start_snap["edge_id"] != end_snap["edge_id"]:
+                continue
+            direct_edge_length = abs(start_snap["locate_ratio"] - end_snap["locate_ratio"]) * start_snap["total_length_meters"]
+            register_option(
+                start_snap["start_connector_meters"] + direct_edge_length + end_connector_meters,
+                _merge_coord_segments(
+                    origin_search["start_point"],
+                    [start_snap["snap_coord"]],
+                    [end_snap_coord],
+                    end_point,
+                ),
+            )
+
+    return best_option
 
 
 def _fetch_local_walking_route(
@@ -929,25 +1011,33 @@ def _fetch_local_walking_route(
     to_lon: float,
 ) -> Dict[str, Any]:
     graph = _load_walking_network_graph()
-    start_candidates = _fetch_nearest_walking_edges(from_lat, from_lon, limit=4)
-    end_candidates = _fetch_nearest_walking_edges(to_lat, to_lon, limit=4)
-
-    best_route: Optional[Dict[str, Any]] = None
-    for start_snap in start_candidates:
-        for end_snap in end_candidates:
-            route = _build_local_walking_route_for_pair(
-                graph=graph,
-                start_snap=start_snap,
-                end_snap=end_snap,
-                from_lat=from_lat,
-                from_lon=from_lon,
-                to_lat=to_lat,
-                to_lon=to_lon,
-            )
-            if route is None:
-                continue
-            if best_route is None or float(route["distance_meters"]) < float(best_route["distance_meters"]):
-                best_route = route
+    connection = None
+    try:
+        connection = _get_db_connection()
+        end_candidates = _fetch_nearest_walking_edges(to_lat, to_lon, limit=4, connection=connection)
+        target_nodes = {
+            node_id
+            for end_snap in end_candidates
+            for node_id in (end_snap["source_node"], end_snap["target_node"])
+            if node_id
+        }
+        origin_search = _prepare_walking_origin_search(
+            graph,
+            from_lat,
+            from_lon,
+            target_nodes=target_nodes,
+            connection=connection,
+        )
+    finally:
+        if connection is not None:
+            connection.close()
+    best_route = _select_best_walking_route_option(
+        graph,
+        origin_search,
+        end_candidates,
+        to_lat,
+        to_lon,
+    )
 
     if best_route is None:
         raise RuntimeError(
@@ -955,7 +1045,7 @@ def _fetch_local_walking_route(
             "Kontroller at gangnettet er importert for omradet."
         )
 
-    return best_route
+    return _build_walking_route_payload(best_route)
 
 
 def _fetch_routed_path(
@@ -971,6 +1061,20 @@ def _fetch_routed_path(
 
 
 def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
+    resolved_path = file_path.resolve()
+    cache_key = str(resolved_path)
+    try:
+        mtime_ns = resolved_path.stat().st_mtime_ns
+    except FileNotFoundError:
+        mtime_ns = None
+
+    with _static_points_cache_lock:
+        cached = _static_points_cache.get(cache_key)
+        if isinstance(cached, dict) and cached.get("mtime_ns") == mtime_ns:
+            cached_points = cached.get("points")
+            if isinstance(cached_points, list):
+                return cached_points
+
     with open(file_path, "r", encoding="utf-8") as file:
         data = json.load(file)
     points = []
@@ -989,6 +1093,13 @@ def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
                 "label": props.get("navn") or props.get("adresse") or "Punkt",
             }
         )
+
+    with _static_points_cache_lock:
+        _static_points_cache[cache_key] = {
+            "mtime_ns": mtime_ns,
+            "points": points,
+        }
+
     return points
 
 
@@ -1156,6 +1267,81 @@ def _load_shelter_points() -> List[Dict[str, Any]]:
             }
         )
     return points
+
+
+def _find_nearest_walking_point(
+    lat: float,
+    lon: float,
+    candidate_points: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    graph = _load_walking_network_graph()
+    prepared_targets: List[Tuple[Dict[str, Any], List[Dict[str, Any]]]] = []
+    target_nodes = set()
+    last_runtime_error: Optional[str] = None
+    connection = None
+    try:
+        connection = _get_db_connection()
+        for point in candidate_points:
+            try:
+                end_candidates = _fetch_nearest_walking_edges(
+                    point["lat"],
+                    point["lon"],
+                    limit=4,
+                    connection=connection,
+                )
+            except RuntimeError as exc:
+                last_runtime_error = str(exc)
+                continue
+            if not end_candidates:
+                continue
+            prepared_targets.append((point, end_candidates))
+            for end_snap in end_candidates:
+                target_nodes.add(end_snap["source_node"])
+                target_nodes.add(end_snap["target_node"])
+
+        if not prepared_targets:
+            raise RuntimeError(last_runtime_error or "Fant ingen gyldig walking-rute til valgte kandidater.")
+
+        origin_search = _prepare_walking_origin_search(
+            graph,
+            lat,
+            lon,
+            target_nodes=target_nodes,
+            connection=connection,
+        )
+    finally:
+        if connection is not None:
+            connection.close()
+
+    best_point: Optional[Dict[str, Any]] = None
+    best_route: Optional[Dict[str, Any]] = None
+
+    for point, end_candidates in prepared_targets:
+        route_option = _select_best_walking_route_option(
+            graph,
+            origin_search,
+            end_candidates,
+            point["lat"],
+            point["lon"],
+        )
+        if route_option is None:
+            continue
+        if best_route is None or float(route_option["distance_meters"]) < float(best_route["distance_meters"]):
+            best_route = route_option
+            best_point = {
+                **point,
+                "route_distance_meters": round(float(route_option["distance_meters"]), 2),
+                "route_mode": "walking",
+            }
+
+    if best_point is None or best_route is None:
+        raise RuntimeError(
+            "Fant ingen sammenhengende gangrute til de naermeste kandidatene. "
+            "Kontroller at gangnettet er importert for omradet."
+        )
+
+    best_point["route"] = _build_walking_route_payload(best_route)
+    return best_point
 
 
 def _ensure_location_analysis_function() -> None:
@@ -1351,23 +1537,52 @@ def get_nearest_point(type: str, lat: float, lon: float, mode: str = "air"):
     if mode == "air":
         return sorted_points[0]
 
-    best_point = None
-    best_distance_meters = None
     candidate_points = sorted_points[:8]
+    if mode == "walking":
+        try:
+            return _find_nearest_walking_point(lat, lon, candidate_points)
+        except RuntimeError as exc:
+            status_code = 501 if "ikke konfigurert" in str(exc) else 502
+            return JSONResponse(status_code=status_code, content={"error": str(exc)})
+        except Exception as exc:
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"Klarte ikke beregne naermeste {type} for walking: {exc}"},
+            )
+
+    best_point = None
+    best_route = None
+    best_distance_meters = None
     last_runtime_error: Optional[str] = None
 
     try:
-        for point in candidate_points:
+        def evaluate_point(point: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]], Optional[str]]:
             try:
                 route = _fetch_routed_path(mode, lat, lon, point["lat"], point["lon"])
             except RuntimeError as exc:
-                last_runtime_error = str(exc)
-                continue
+                return point, None, str(exc)
             routed_distance = route.get("distance_meters")
             if not isinstance(routed_distance, (int, float)) or not math.isfinite(routed_distance):
+                return point, None, None
+            return point, route, None
+
+        if mode == "driving" and len(candidate_points) > 1:
+            with ThreadPoolExecutor(max_workers=min(4, len(candidate_points))) as executor:
+                futures = [executor.submit(evaluate_point, point) for point in candidate_points]
+                evaluated_candidates = [future.result() for future in as_completed(futures)]
+        else:
+            evaluated_candidates = [evaluate_point(point) for point in candidate_points]
+
+        for point, route, route_error in evaluated_candidates:
+            if route_error:
+                last_runtime_error = route_error
                 continue
+            if route is None:
+                continue
+            routed_distance = route.get("distance_meters")
             if best_distance_meters is None or routed_distance < best_distance_meters:
                 best_distance_meters = float(routed_distance)
+                best_route = route
                 best_point = {
                     **point,
                     "route_distance_meters": round(float(routed_distance), 2),
@@ -1387,6 +1602,9 @@ def get_nearest_point(type: str, lat: float, lon: float, mode: str = "air"):
             status_code=502,
             content={"error": f"Fant ingen gyldig {mode}-rute til {type}."},
         )
+
+    if isinstance(best_route, dict):
+        best_point["route"] = best_route
 
     return best_point
 

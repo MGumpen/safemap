@@ -572,6 +572,20 @@ const fetchRouteData = async (from, to, mode) => {
   return payload;
 };
 
+const renderRoutePayload = (from, to, route, mode = currentRouteMode) => {
+  activeRoute = { from: { ...from }, to: { ...to } };
+  const coordinates = route?.geometry?.coordinates;
+  if (!Array.isArray(coordinates) || coordinates.length < 2) {
+    throw new Error('Rutemotoren returnerte ugyldig geometri.');
+  }
+  const coords = coordinates.map(([lon, lat]) => [lat, lon]);
+  drawRouteLine(
+    coords,
+    buildRouteSummary(mode, route.distance_meters, route.duration_seconds),
+    mode
+  );
+};
+
 const renderRoute = async (from, to) => {
   if (!from || !to) return;
 
@@ -586,16 +600,7 @@ const renderRoute = async (from, to) => {
       showMapStatusPopup(`Fant ingen ${getRouteModeLabel(mode).toLowerCase()} mellom punktene.`);
       return;
     }
-    const coordinates = route.geometry?.coordinates;
-    if (!Array.isArray(coordinates) || coordinates.length < 2) {
-      throw new Error('Rutemotoren returnerte ugyldig geometri.');
-    }
-    const coords = coordinates.map(([lon, lat]) => [lat, lon]);
-    drawRouteLine(
-      coords,
-      buildRouteSummary(mode, route.distance_meters, route.duration_seconds),
-      mode
-    );
+    renderRoutePayload(from, to, route, mode);
   } catch (error) {
     if (requestToken !== routeRequestToken) return;
     clearRouteLine();
@@ -1300,16 +1305,23 @@ document.addEventListener('click', (event) => {
 const routeToNearest = async (type) => {
   if (!fromSelection) return;
   const from = fromSelection.coords;
+  const mode = currentRouteMode;
   try {
     const response = await fetch(
-      `/api/nearest?type=${type}&lat=${from.lat}&lon=${from.lon}&mode=${encodeURIComponent(currentRouteMode)}`
+      `/api/nearest?type=${type}&lat=${from.lat}&lon=${from.lon}&mode=${encodeURIComponent(mode)}`
     );
     const target = await response.json().catch(() => null);
     if (!response.ok) {
       throw new Error(target?.error || 'Nearest-oppslag feilet');
     }
     if (!target || target.error) return;
-    await renderRoute(from, { lat: target.lat, lon: target.lon });
+    if (mode !== currentRouteMode) return;
+    const to = { lat: target.lat, lon: target.lon };
+    if (target.route && target.route.mode === mode) {
+      renderRoutePayload(from, to, target.route, mode);
+      return;
+    }
+    await renderRoute(from, to);
   } catch (error) {
     if (error instanceof Error) {
       showMapStatusPopup(error.message);
