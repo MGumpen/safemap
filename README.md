@@ -33,8 +33,10 @@ cd safemap
 # dbname=
 # ROUTING_DRIVING_BASE_URL=https://router.project-osrm.org
 # ROUTING_DRIVING_PROFILE=driving
-# ROUTING_WALKING_BASE_URL=
-# ROUTING_WALKING_PROFILE=foot
+# WALKING_NETWORK_TABLE=vegnett_pluss_gangnett
+# WALKING_NETWORK_CACHE_TTL_SECONDS=300
+# WALKING_MAX_SNAP_DISTANCE_METERS=1500
+# WALKING_SPEED_MPS=1.4
 
 # Bygg og start appen
 docker compose up --build
@@ -42,9 +44,9 @@ docker compose up --build
 
 Appen blir tilgjengelig på `http://localhost:8000`.
 
-For ekte gangruting ma `ROUTING_WALKING_BASE_URL` peke til en egen rutetjeneste
-som er bygget for gaaende pa et `Vegnett Pluss`-basert gangnett, for eksempel
-en OSRM-instans med `foot`-profil bygget fra gangbare Vegnett Pluss-lenker.
+Gangruting bygges lokalt paa `vegnett_pluss_gangnett` i databasen. For at
+`Gangvei` skal fungere maa dere derfor hente og importere `Vegnett Pluss`
+for de kommunene dere vil route i.
 
 `docker compose down` stopper appen.
 
@@ -91,6 +93,9 @@ For aa importere Vegnett Pluss-gangnettet til PostGIS:
 ```bash
 python3 scripts/import_geojson_to_postgis.py --dataset vegnett_gangnett
 ```
+
+Etter import brukes tabellen `vegnett_pluss_gangnett` direkte av backend sin
+lokale `walking`-ruter for aa finne korteste gangvei.
 
 Dette oppretter og fyller disse tabellene:
 

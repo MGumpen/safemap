@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from dotenv import load_dotenv
+import heapq
 import io
 import os
 import psycopg2
@@ -13,11 +14,12 @@ import ssl
 import time
 import zipfile
 from threading import Lock
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest, urlopen
 from pyproj import Transformer
+from psycopg2 import sql
 
 try:
     import certifi
@@ -38,8 +40,10 @@ PORT = os.getenv("port")
 DBNAME = os.getenv("dbname")
 ROUTING_DRIVING_BASE_URL = os.getenv("ROUTING_DRIVING_BASE_URL", "https://router.project-osrm.org").strip()
 ROUTING_DRIVING_PROFILE = os.getenv("ROUTING_DRIVING_PROFILE", "driving").strip() or "driving"
-ROUTING_WALKING_BASE_URL = os.getenv("ROUTING_WALKING_BASE_URL", "").strip()
-ROUTING_WALKING_PROFILE = os.getenv("ROUTING_WALKING_PROFILE", "foot").strip() or "foot"
+WALKING_NETWORK_TABLE = os.getenv("WALKING_NETWORK_TABLE", "vegnett_pluss_gangnett").strip() or "vegnett_pluss_gangnett"
+WALKING_NETWORK_CACHE_TTL_SECONDS = int(os.getenv("WALKING_NETWORK_CACHE_TTL_SECONDS", "300"))
+WALKING_MAX_SNAP_DISTANCE_METERS = float(os.getenv("WALKING_MAX_SNAP_DISTANCE_METERS", "1500"))
+WALKING_SPEED_MPS = float(os.getenv("WALKING_SPEED_MPS", "1.4"))
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -79,6 +83,8 @@ _shelter_geojson_cache: Dict[str, Any] = {"geojson": None, "expires_at": 0.0}
 _shelter_transformer = Transformer.from_crs(25833, 4326, always_xy=True)
 _analysis_function_lock = Lock()
 _analysis_function_ready = False
+_walking_network_lock = Lock()
+_walking_network_cache: Dict[str, Any] = {"graph": None, "expires_at": 0.0}
 
 LOCATION_ANALYSIS_FUNCTION_SQL = """
 CREATE OR REPLACE FUNCTION public.analyze_location_score(
@@ -436,12 +442,6 @@ def _get_route_mode_settings(mode: str) -> Dict[str, str]:
             "base_url": ROUTING_DRIVING_BASE_URL,
             "profile": ROUTING_DRIVING_PROFILE,
         }
-    if normalized_mode == "walking":
-        return {
-            "label": "Gangvei",
-            "base_url": ROUTING_WALKING_BASE_URL,
-            "profile": ROUTING_WALKING_PROFILE,
-        }
     raise ValueError("Ugyldig rutemodus. Bruk driving eller walking.")
 
 
@@ -465,7 +465,7 @@ def _build_osrm_route_url(
     )
 
 
-def _fetch_routed_path(
+def _fetch_external_route(
     mode: str,
     from_lat: float,
     from_lon: float,
@@ -477,14 +477,9 @@ def _fetch_routed_path(
     profile = settings["profile"]
 
     if not base_url:
-        guidance = (
-            "til en rutetjeneste som faktisk er bygget for denne modusen."
-            if mode != "walking"
-            else "til en gangruter bygget paa Vegnett Pluss."
-        )
         raise RuntimeError(
             f"{settings['label']} er ikke konfigurert. Sett ROUTING_{mode.upper()}_BASE_URL i backend-miljoet "
-            f"{guidance}"
+            "til en rutetjeneste som faktisk er bygget for denne modusen."
         )
 
     payload = _http_json_request(
@@ -508,6 +503,471 @@ def _fetch_routed_path(
         "geometry": geometry,
         "provider_profile": profile,
     }
+
+
+def _parse_geojson_geometry(value: Any) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        parsed = json.loads(value)
+        if isinstance(parsed, dict):
+            return parsed
+    raise ValueError("Kunne ikke lese GeoJSON-geometri.")
+
+
+def _extract_coords_from_geometry(value: Any) -> List[List[float]]:
+    geometry = _parse_geojson_geometry(value)
+    geometry_type = geometry.get("type")
+    coordinates = geometry.get("coordinates")
+    if geometry_type == "LineString" and isinstance(coordinates, list):
+        return [[float(coord[0]), float(coord[1])] for coord in coordinates if isinstance(coord, list) and len(coord) >= 2]
+    if geometry_type == "Point" and isinstance(coordinates, list) and len(coordinates) >= 2:
+        return [[float(coordinates[0]), float(coordinates[1])]]
+    raise ValueError(f"Ustottet geometri for walking-ruting: {geometry_type}")
+
+
+def _normalize_coord_pair(coord: Any) -> List[float]:
+    if not isinstance(coord, (list, tuple)) or len(coord) < 2:
+        raise ValueError("Ugyldig koordinat.")
+    return [float(coord[0]), float(coord[1])]
+
+
+def _merge_coord_segments(*segments: List[List[float]]) -> List[List[float]]:
+    merged: List[List[float]] = []
+    for segment in segments:
+        for coord in segment:
+            normalized = _normalize_coord_pair(coord)
+            if merged and merged[-1] == normalized:
+                continue
+            merged.append(normalized)
+    return merged
+
+
+def _reverse_coords(coords: List[List[float]]) -> List[List[float]]:
+    return [list(coord) for coord in reversed(coords)]
+
+
+def _build_temp_edge(
+    adjacency: Dict[str, List[Tuple[str, float, str, bool]]],
+    temp_edge_coords: Dict[str, List[List[float]]],
+    edge_id: str,
+    from_node: str,
+    to_node: str,
+    length_meters: float,
+    coords: List[List[float]],
+) -> None:
+    if not math.isfinite(length_meters) or length_meters < 0:
+        return
+    if len(coords) < 2:
+        return
+    temp_edge_coords[edge_id] = coords
+    adjacency.setdefault(from_node, []).append((to_node, float(length_meters), edge_id, True))
+    adjacency.setdefault(to_node, []).append((from_node, float(length_meters), edge_id, False))
+
+
+def _load_walking_network_graph(force_refresh: bool = False) -> Dict[str, Any]:
+    now = time.time()
+    with _walking_network_lock:
+        cached_graph = _walking_network_cache.get("graph")
+        expires_at = float(_walking_network_cache.get("expires_at", 0.0) or 0.0)
+        if not force_refresh and isinstance(cached_graph, dict) and expires_at > now:
+            return cached_graph
+
+    connection = None
+    cursor = None
+    try:
+        connection = _get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            sql.SQL(
+                """
+                SELECT
+                    id,
+                    source_node,
+                    target_node,
+                    COALESCE(length_meters, ST_Length(geom::geography)) AS length_meters,
+                    ST_AsGeoJSON(geom) AS geometry_json
+                FROM {table_name}
+                WHERE geom IS NOT NULL
+                  AND source_node IS NOT NULL
+                  AND target_node IS NOT NULL
+                """
+            ).format(table_name=sql.Identifier(WALKING_NETWORK_TABLE))
+        )
+        rows = cursor.fetchall()
+    except Exception as exc:
+        raise RuntimeError(
+            f"Klarte ikke laste walking-nett fra {WALKING_NETWORK_TABLE}. "
+            "Kontroller at Vegnett Pluss er hentet og importert. "
+            f"Detaljer: {exc}"
+        ) from exc
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    if not rows:
+        raise RuntimeError(
+            f"Fant ingen ganglenker i {WALKING_NETWORK_TABLE}. "
+            "Kjor fetch_vegnett_pluss_gangnett.py og importer resultatet til PostGIS."
+        )
+
+    adjacency: Dict[str, List[Tuple[str, float, str, bool]]] = {}
+    edge_coords: Dict[str, List[List[float]]] = {}
+    edge_count = 0
+
+    for edge_id_raw, source_node_raw, target_node_raw, length_raw, geometry_json in rows:
+        source_node = str(source_node_raw).strip()
+        target_node = str(target_node_raw).strip()
+        if not source_node or not target_node:
+            continue
+        coords = _extract_coords_from_geometry(geometry_json)
+        if len(coords) < 2:
+            continue
+        length_meters = float(length_raw or 0.0)
+        edge_id = str(edge_id_raw)
+        edge_coords[edge_id] = coords
+        adjacency.setdefault(source_node, []).append((target_node, length_meters, edge_id, True))
+        adjacency.setdefault(target_node, []).append((source_node, length_meters, edge_id, False))
+        edge_count += 1
+
+    if not edge_count:
+        raise RuntimeError(
+            f"{WALKING_NETWORK_TABLE} inneholder ingen brukbare lenker med nodekoblinger. "
+            "Hent data pa nytt med fetch_vegnett_pluss_gangnett.py og importer dem pa nytt."
+        )
+
+    graph = {
+        "adjacency": adjacency,
+        "edge_coords": edge_coords,
+        "edge_count": edge_count,
+        "node_count": len(adjacency),
+    }
+
+    with _walking_network_lock:
+        _walking_network_cache["graph"] = graph
+        _walking_network_cache["expires_at"] = time.time() + WALKING_NETWORK_CACHE_TTL_SECONDS
+
+    return graph
+
+
+def _fetch_nearest_walking_edges(lat: float, lon: float, limit: int = 4) -> List[Dict[str, Any]]:
+    connection = None
+    cursor = None
+    try:
+        connection = _get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            sql.SQL(
+                """
+                WITH input_point AS (
+                    SELECT ST_SetSRID(ST_MakePoint(%s, %s), 4326) AS geom
+                )
+                SELECT
+                    e.id,
+                    e.source_node,
+                    e.target_node,
+                    COALESCE(e.length_meters, ST_Length(e.geom::geography)) AS length_meters,
+                    ST_AsGeoJSON(e.geom) AS geometry_json,
+                    ST_AsGeoJSON(ST_ClosestPoint(e.geom, input_point.geom)) AS snap_point_json,
+                    ST_LineLocatePoint(e.geom, input_point.geom) AS locate_ratio,
+                    ST_AsGeoJSON(ST_LineSubstring(e.geom, 0, ST_LineLocatePoint(e.geom, input_point.geom))) AS prefix_json,
+                    ST_AsGeoJSON(ST_LineSubstring(e.geom, ST_LineLocatePoint(e.geom, input_point.geom), 1)) AS suffix_json,
+                    ST_Distance(e.geom::geography, input_point.geom::geography) AS snap_distance_meters
+                FROM {table_name} e
+                CROSS JOIN input_point
+                WHERE e.geom IS NOT NULL
+                  AND e.source_node IS NOT NULL
+                  AND e.target_node IS NOT NULL
+                ORDER BY e.geom <-> input_point.geom
+                LIMIT %s
+                """
+            ).format(table_name=sql.Identifier(WALKING_NETWORK_TABLE)),
+            (lon, lat, max(1, limit)),
+        )
+        rows = cursor.fetchall()
+    except Exception as exc:
+        raise RuntimeError(
+            f"Klarte ikke finne naermeste ganglenke i {WALKING_NETWORK_TABLE}. "
+            f"Detaljer: {exc}"
+        ) from exc
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    if not rows:
+        raise RuntimeError(
+            f"Fant ingen ganglenker i {WALKING_NETWORK_TABLE}. "
+            "Importer Vegnett Pluss-gangnettet til databasen for walking-ruting."
+        )
+
+    candidates: List[Dict[str, Any]] = []
+    for row in rows:
+        (
+            edge_id_raw,
+            source_node_raw,
+            target_node_raw,
+            length_raw,
+            geometry_json,
+            snap_point_json,
+            locate_ratio_raw,
+            prefix_json,
+            suffix_json,
+            snap_distance_raw,
+        ) = row
+
+        snap_coords = _extract_coords_from_geometry(snap_point_json)
+        if not snap_coords:
+            continue
+
+        snap_distance_meters = float(snap_distance_raw or 0.0)
+        if snap_distance_meters > WALKING_MAX_SNAP_DISTANCE_METERS:
+            continue
+
+        locate_ratio = float(locate_ratio_raw or 0.0)
+        locate_ratio = max(0.0, min(1.0, locate_ratio))
+        total_length_meters = float(length_raw or 0.0)
+
+        candidates.append(
+            {
+                "edge_id": str(edge_id_raw),
+                "source_node": str(source_node_raw),
+                "target_node": str(target_node_raw),
+                "total_length_meters": total_length_meters,
+                "locate_ratio": locate_ratio,
+                "snap_distance_meters": snap_distance_meters,
+                "edge_coords": _extract_coords_from_geometry(geometry_json),
+                "snap_coords": snap_coords,
+                "prefix_coords": _extract_coords_from_geometry(prefix_json),
+                "suffix_coords": _extract_coords_from_geometry(suffix_json),
+            }
+        )
+
+    if not candidates:
+        raise RuntimeError(
+            "Valgt punkt ligger for langt unna tilgjengelig Vegnett Pluss-gangnett. "
+            "Hent inn flere kommuner eller utvid gangnettet."
+        )
+
+    return candidates
+
+
+def _fetch_nearest_walking_edge(lat: float, lon: float) -> Dict[str, Any]:
+    return _fetch_nearest_walking_edges(lat, lon, limit=1)[0]
+
+
+def _iter_walking_neighbors(
+    graph: Dict[str, Any],
+    extra_adjacency: Dict[str, List[Tuple[str, float, str, bool]]],
+    node_id: str,
+) -> List[Tuple[str, float, str, bool]]:
+    return [*graph["adjacency"].get(node_id, []), *extra_adjacency.get(node_id, [])]
+
+
+def _reconstruct_walking_path(
+    graph: Dict[str, Any],
+    temp_edge_coords: Dict[str, List[List[float]]],
+    previous: Dict[str, Tuple[str, str, bool]],
+    end_node: str,
+) -> List[List[float]]:
+    segments: List[List[List[float]]] = []
+    current = end_node
+    while current in previous:
+        previous_node, edge_id, is_forward = previous[current]
+        coords = temp_edge_coords.get(edge_id) or graph["edge_coords"].get(edge_id)
+        if not coords:
+            raise RuntimeError("Mangler geometri for walking-ruten.")
+        segments.append(coords if is_forward else _reverse_coords(coords))
+        current = previous_node
+    segments.reverse()
+    return _merge_coord_segments(*segments)
+
+
+def _build_local_walking_route_for_pair(
+    graph: Dict[str, Any],
+    start_snap: Dict[str, Any],
+    end_snap: Dict[str, Any],
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+) -> Optional[Dict[str, Any]]:
+    extra_adjacency: Dict[str, List[Tuple[str, float, str, bool]]] = {}
+    temp_edge_coords: Dict[str, List[List[float]]] = {}
+    start_node = "__walk_start__"
+    end_node = "__walk_end__"
+    start_point = [[from_lon, from_lat]]
+    end_point = [[to_lon, to_lat]]
+
+    start_snap_coord = start_snap["snap_coords"][-1]
+    end_snap_coord = end_snap["snap_coords"][-1]
+    start_connector_meters = _haversine(from_lat, from_lon, start_snap_coord[1], start_snap_coord[0]) * 1000
+    end_connector_meters = _haversine(to_lat, to_lon, end_snap_coord[1], end_snap_coord[0]) * 1000
+
+    start_prefix_length = start_snap["locate_ratio"] * start_snap["total_length_meters"]
+    start_suffix_length = start_snap["total_length_meters"] - start_prefix_length
+    end_prefix_length = end_snap["locate_ratio"] * end_snap["total_length_meters"]
+    end_suffix_length = end_snap["total_length_meters"] - end_prefix_length
+
+    _build_temp_edge(
+        extra_adjacency,
+        temp_edge_coords,
+        "temp:start:source",
+        start_node,
+        start_snap["source_node"],
+        start_connector_meters + start_prefix_length,
+        _merge_coord_segments(
+            start_point,
+            [start_snap_coord],
+            _reverse_coords(start_snap["prefix_coords"]),
+        ),
+    )
+    _build_temp_edge(
+        extra_adjacency,
+        temp_edge_coords,
+        "temp:start:target",
+        start_node,
+        start_snap["target_node"],
+        start_connector_meters + start_suffix_length,
+        _merge_coord_segments(
+            start_point,
+            [start_snap_coord],
+            start_snap["suffix_coords"],
+        ),
+    )
+    _build_temp_edge(
+        extra_adjacency,
+        temp_edge_coords,
+        "temp:source:end",
+        end_snap["source_node"],
+        end_node,
+        end_connector_meters + end_prefix_length,
+        _merge_coord_segments(
+            end_snap["prefix_coords"],
+            [end_snap_coord],
+            end_point,
+        ),
+    )
+    _build_temp_edge(
+        extra_adjacency,
+        temp_edge_coords,
+        "temp:target:end",
+        end_snap["target_node"],
+        end_node,
+        end_connector_meters + end_suffix_length,
+        _merge_coord_segments(
+            _reverse_coords(end_snap["suffix_coords"]),
+            [end_snap_coord],
+            end_point,
+        ),
+    )
+
+    if start_snap["edge_id"] == end_snap["edge_id"]:
+        direct_edge_length = abs(start_snap["locate_ratio"] - end_snap["locate_ratio"]) * start_snap["total_length_meters"]
+        direct_edge_coords = _merge_coord_segments(
+            start_point,
+            [start_snap_coord],
+            [end_snap_coord],
+            end_point,
+        )
+        _build_temp_edge(
+            extra_adjacency,
+            temp_edge_coords,
+            "temp:start:end:direct",
+            start_node,
+            end_node,
+            start_connector_meters + direct_edge_length + end_connector_meters,
+            direct_edge_coords,
+        )
+
+    distances: Dict[str, float] = {start_node: 0.0}
+    previous: Dict[str, Tuple[str, str, bool]] = {}
+    heap: List[Tuple[float, str]] = [(0.0, start_node)]
+
+    while heap:
+        current_distance, current_node = heapq.heappop(heap)
+        if current_distance > distances.get(current_node, float("inf")):
+            continue
+        if current_node == end_node:
+            break
+        for neighbor, length_meters, edge_id, is_forward in _iter_walking_neighbors(graph, extra_adjacency, current_node):
+            next_distance = current_distance + length_meters
+            if next_distance >= distances.get(neighbor, float("inf")):
+                continue
+            distances[neighbor] = next_distance
+            previous[neighbor] = (current_node, edge_id, is_forward)
+            heapq.heappush(heap, (next_distance, neighbor))
+
+    total_distance_meters = distances.get(end_node)
+    if total_distance_meters is None:
+        return None
+
+    route_coords = _reconstruct_walking_path(graph, temp_edge_coords, previous, end_node)
+    if len(route_coords) < 2:
+        return None
+
+    return {
+        "mode": "walking",
+        "label": "Gangvei",
+        "distance_meters": round(total_distance_meters, 2),
+        "duration_seconds": round(total_distance_meters / max(WALKING_SPEED_MPS, 0.1), 2),
+        "geometry": {
+            "type": "LineString",
+            "coordinates": route_coords,
+        },
+        "provider_profile": f"local:{WALKING_NETWORK_TABLE}",
+    }
+
+
+def _fetch_local_walking_route(
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+) -> Dict[str, Any]:
+    graph = _load_walking_network_graph()
+    start_candidates = _fetch_nearest_walking_edges(from_lat, from_lon, limit=4)
+    end_candidates = _fetch_nearest_walking_edges(to_lat, to_lon, limit=4)
+
+    best_route: Optional[Dict[str, Any]] = None
+    for start_snap in start_candidates:
+        for end_snap in end_candidates:
+            route = _build_local_walking_route_for_pair(
+                graph=graph,
+                start_snap=start_snap,
+                end_snap=end_snap,
+                from_lat=from_lat,
+                from_lon=from_lon,
+                to_lat=to_lat,
+                to_lon=to_lon,
+            )
+            if route is None:
+                continue
+            if best_route is None or float(route["distance_meters"]) < float(best_route["distance_meters"]):
+                best_route = route
+
+    if best_route is None:
+        raise RuntimeError(
+            "Fant ingen sammenhengende gangrute i Vegnett Pluss mellom punktene. "
+            "Kontroller at gangnettet er importert for omradet."
+        )
+
+    return best_route
+
+
+def _fetch_routed_path(
+    mode: str,
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+) -> Dict[str, Any]:
+    if mode == "walking":
+        return _fetch_local_walking_route(from_lat, from_lon, to_lat, to_lon)
+    return _fetch_external_route(mode, from_lat, from_lon, to_lat, to_lon)
 
 
 def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
@@ -894,10 +1354,15 @@ def get_nearest_point(type: str, lat: float, lon: float, mode: str = "air"):
     best_point = None
     best_distance_meters = None
     candidate_points = sorted_points[:8]
+    last_runtime_error: Optional[str] = None
 
     try:
         for point in candidate_points:
-            route = _fetch_routed_path(mode, lat, lon, point["lat"], point["lon"])
+            try:
+                route = _fetch_routed_path(mode, lat, lon, point["lat"], point["lon"])
+            except RuntimeError as exc:
+                last_runtime_error = str(exc)
+                continue
             routed_distance = route.get("distance_meters")
             if not isinstance(routed_distance, (int, float)) or not math.isfinite(routed_distance):
                 continue
@@ -908,9 +1373,6 @@ def get_nearest_point(type: str, lat: float, lon: float, mode: str = "air"):
                     "route_distance_meters": round(float(routed_distance), 2),
                     "route_mode": mode,
                 }
-    except RuntimeError as exc:
-        status_code = 501 if "ikke konfigurert" in str(exc) else 502
-        return JSONResponse(status_code=status_code, content={"error": str(exc)})
     except Exception as exc:
         return JSONResponse(
             status_code=500,
@@ -918,6 +1380,9 @@ def get_nearest_point(type: str, lat: float, lon: float, mode: str = "air"):
         )
 
     if best_point is None:
+        if last_runtime_error:
+            status_code = 501 if "ikke konfigurert" in last_runtime_error else 502
+            return JSONResponse(status_code=status_code, content={"error": last_runtime_error})
         return JSONResponse(
             status_code=502,
             content={"error": f"Fant ingen gyldig {mode}-rute til {type}."},

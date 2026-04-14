@@ -228,12 +228,22 @@ def fetch_features_for_kommune(
             if not isinstance(sequence, dict):
                 continue
             sequence_id = sequence.get("veglenkesekvensid")
+            port_node_map: dict[Any, Any] = {}
+            for port in sequence.get("porter") or []:
+                if not isinstance(port, dict):
+                    continue
+                node_id = ((port.get("tilkobling") or {}).get("nodeid"))
+                if node_id is None:
+                    continue
+                port_node_map[port.get("id")] = node_id
             for segment in sequence.get("veglenker") or []:
                 if not isinstance(segment, dict):
                     continue
                 segment = {
                     **segment,
                     "veglenkesekvensid": segment.get("veglenkesekvensid") or sequence_id,
+                    "startnode": segment.get("startnode") or port_node_map.get(segment.get("startport")),
+                    "sluttnode": segment.get("sluttnode") or port_node_map.get(segment.get("sluttport")),
                 }
                 feature = build_feature(segment)
                 if feature is None:
