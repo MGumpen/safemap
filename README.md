@@ -126,14 +126,6 @@ GitHub Actions kjører automatisk ved push til `main` eller `dev` branch:
 
 Se [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for konfigurasjonsinstruksjoner.
 
-## Bidra
-
-Vi setter pris på bidrag til prosjektet. Les [CONTRIBUTING.md](CONTRIBUTING.md) for retningslinjer om hvordan du bidrar, inkludert:
-
-- Oppsett av utviklingsmiljø
-- Coding standards
-- Testing-krav
-- Pull request prosess
 
 ## Lisens
 
@@ -156,30 +148,6 @@ Prosjektet er utviklet som en del av IS-218 ved Universitetet i Agder i samarbei
 - Testdekningen er for lav og bør økes for å sikre stabilitet.
 - Vi kunne hatt bedre tidsplanlegging for å unngå siste‑liten endringer.
 - Brukeropplevelsen kan finjusteres med mer tilbakemelding fra reelle brukere.
-
-## Oppgave 1
-
-### Beskrivelse av besvarelsen
-
-I Oppgave 1 etablerte vi et fungerende webkart for temaet samfunnsberedskap i
-Totalforsvarets år 2026. Målet med løsningen var å vise hvordan statiske filer,
-eksterne API-er og en romlig database kan kombineres i ett kart som gir brukeren
-oversikt over viktige beredskapsressurser.
-
-Det viktigste som er løst i Oppgave 1 er:
-
-- Kartet er bygget med Leaflet og presenterer geografiske data interaktivt i nettleseren.
-- Sykehus og legevakter lastes inn fra lokale GeoJSON-filer som en del av prosjektets egne datakilder.
-- Tilfluktsrom og adresseoppslag hentes fra eksterne tjenester fra GeoNorge/Kartverket, slik at kartet kombinerer lokale og eksterne datasett.
-- Brannstasjoner hentes fra database og gjør at kartet også kan kobles til en romlig SQL-løsning.
-- Koordinater for tilfluktsrom transformeres fra EPSG:25833 til WGS84 før de vises i kartet, slik at datasett fra ulike kilder kan brukes sammen i samme kartvisning.
-- Alle objekter kan klikkes på og viser popup med informasjon fra attributtene i datasettet.
-- Kartet bruker datadrevet styling ved at ulike ressurstyper vises med egne farger, symboler og størrelser tilpasset zoomnivå.
-- Brukeren kan slå datalag av og på med layer control i grensesnittet.
-- Løsningen har romlig filtrering gjennom radiusfilter, der brukeren kan vise kun objekter innenfor en valgt avstand fra egen posisjon eller kartets sentrum.
-
-Denne grunnløsningen danner fundamentet for Oppgave 2, der vi har utvidet
-kartet med PostGIS-basert analyse, dynamisk scoring og beredskapssoner.
 
 ## Oppgave 2
 
