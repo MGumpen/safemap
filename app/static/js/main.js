@@ -402,6 +402,7 @@ if (logoButton) {
 
 const addressInput = document.getElementById('address-search');
 const addressSuggestions = document.getElementById('address-suggestions');
+const routeModeSelect = document.getElementById('route-mode');
 const addressToInput = null;
 const addressToSuggestions = null;
 const routeButton = null;
@@ -409,11 +410,13 @@ const addressLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 let addressMarker = null;
 let routeLine = null;
+let routeRequestToken = 0;
 let activeSuggestionIndex = -1;
 let activeSuggestions = [];
 let addressSearchTimer = null;
 let activeController = null;
 let fromSelection = null;
+let activeRoute = null;
 const distanceRadiusInput = document.getElementById('distance-radius');
 const distanceValueLabel = document.getElementById('distance-value');
 const applyDistanceFilterButton = document.getElementById('apply-distance-filter');
@@ -440,12 +443,68 @@ const analysisCategoryStyles = {
   shelter: { color: '#d97706', short: 'T' }
 };
 
+const ROUTE_MODE_STORAGE_KEY = 'safemap:route-mode';
+const routeModes = {
+  driving: {
+    label: 'Bilvei',
+    osrmProfile: 'driving',
+    lineColor: '#2563eb',
+    dashArray: null
+  },
+  walking: {
+    label: 'Gangvei',
+    osrmProfile: 'walking',
+    lineColor: '#16a34a',
+    dashArray: '10 6'
+  },
+  air: {
+    label: 'Luftlinje',
+    osrmProfile: null,
+    lineColor: '#7c3aed',
+    dashArray: '8 8'
+  }
+};
+let currentRouteMode = 'driving';
+
 const formatRouteDistance = (distanceMeters) => {
   const km = Number(distanceMeters) / 1000;
   if (!Number.isFinite(km)) return '';
   if (km >= 100) return `${km.toFixed(0)} km`;
   if (km >= 10) return `${km.toFixed(1)} km`;
   return `${km.toFixed(2)} km`;
+};
+
+const formatRouteDuration = (durationSeconds) => {
+  const seconds = Number(durationSeconds);
+  if (!Number.isFinite(seconds) || seconds < 0) return '';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (!remainingMinutes) return `${hours} t`;
+  return `${hours} t ${remainingMinutes} min`;
+};
+
+const getRouteModeConfig = (mode = currentRouteMode) => routeModes[mode] || routeModes.driving;
+
+const getRouteModeLabel = (mode = currentRouteMode) => getRouteModeConfig(mode).label;
+
+const readStoredRouteMode = () => {
+  try {
+    const stored = window.localStorage.getItem(ROUTE_MODE_STORAGE_KEY);
+    if (stored && routeModes[stored]) return stored;
+  } catch (error) {
+    // Ignore storage failures and fall back to the default profile.
+  }
+  return 'driving';
+};
+
+const persistRouteMode = (mode) => {
+  try {
+    window.localStorage.setItem(ROUTE_MODE_STORAGE_KEY, mode);
+  } catch (error) {
+    // Ignore storage failures and keep the mode only in memory.
+  }
 };
 
 const toRadians = (value) => (value * Math.PI) / 180;
@@ -460,6 +519,123 @@ const haversineKm = (from, to) => {
     + Math.cos(fromLat) * Math.cos(toLat) * Math.sin(dLon / 2) ** 2;
   return 2 * earthRadiusKm * Math.asin(Math.sqrt(a));
 };
+
+const clearRouteLine = () => {
+  if (!routeLine) return;
+  routeLayer.removeLayer(routeLine);
+  routeLine = null;
+};
+
+const clearActiveRoute = () => {
+  routeRequestToken += 1;
+  activeRoute = null;
+  clearRouteLine();
+};
+
+const bindRouteTooltip = (line, summary) => {
+  if (!line || !summary) return;
+  line.bindTooltip(summary, {
+    permanent: true,
+    direction: 'center',
+    className: 'route-distance-tooltip',
+    opacity: 1
+  }).openTooltip();
+};
+
+const drawRouteLine = (latLngs, summary, mode = currentRouteMode) => {
+  const config = getRouteModeConfig(mode);
+  clearRouteLine();
+  routeLine = L.polyline(latLngs, {
+    color: config.lineColor,
+    weight: mode === 'air' ? 4 : 5,
+    opacity: 0.9,
+    dashArray: config.dashArray || null
+  }).addTo(routeLayer);
+  bindRouteTooltip(routeLine, summary);
+  map.fitBounds(routeLine.getBounds().pad(0.2));
+};
+
+const buildRouteSummary = (mode, distanceMeters, durationSeconds = null) => {
+  const distanceLabel = formatRouteDistance(distanceMeters);
+  if (!distanceLabel) return '';
+  const durationLabel = formatRouteDuration(durationSeconds);
+  if (durationLabel && mode !== 'air') {
+    return `${getRouteModeLabel(mode)}: ${distanceLabel} • ${durationLabel}`;
+  }
+  return `${getRouteModeLabel(mode)}: ${distanceLabel}`;
+};
+
+const drawAirRoute = (from, to) => {
+  const distanceMeters = haversineKm(from, to) * 1000;
+  drawRouteLine(
+    [
+      [from.lat, from.lon],
+      [to.lat, to.lon]
+    ],
+    buildRouteSummary('air', distanceMeters),
+    'air'
+  );
+};
+
+const fetchOsrmRoute = async (from, to, profile) => {
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Ruteoppslag feilet');
+  const data = await response.json();
+  return data.routes?.[0] || null;
+};
+
+const renderRoute = async (from, to) => {
+  if (!from || !to) return;
+
+  activeRoute = { from: { ...from }, to: { ...to } };
+  const requestToken = ++routeRequestToken;
+  const mode = currentRouteMode;
+  const config = getRouteModeConfig(mode);
+
+  if (mode === 'air' || !config.osrmProfile) {
+    drawAirRoute(from, to);
+    return;
+  }
+
+  try {
+    const route = await fetchOsrmRoute(from, to, config.osrmProfile);
+    if (requestToken !== routeRequestToken || mode !== currentRouteMode) return;
+    if (!route) {
+      showMapStatusPopup(`Fant ingen ${getRouteModeLabel(mode).toLowerCase()} mellom punktene.`);
+      return;
+    }
+    const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+    drawRouteLine(coords, buildRouteSummary(mode, route.distance, route.duration), mode);
+  } catch (error) {
+    if (requestToken !== routeRequestToken) return;
+    clearRouteLine();
+    showMapStatusPopup(`Kunne ikke vise ${getRouteModeLabel(mode).toLowerCase()}.`);
+    throw error;
+  }
+};
+
+const setRouteMode = (mode) => {
+  if (!routeModes[mode]) return;
+  currentRouteMode = mode;
+  if (routeModeSelect && routeModeSelect.value !== mode) {
+    routeModeSelect.value = mode;
+  }
+  persistRouteMode(mode);
+  if (activeRoute) {
+    renderRoute(activeRoute.from, activeRoute.to).catch((error) => {
+      console.error('Kunne ikke oppdatere rute for valgt modus', error);
+    });
+  }
+};
+
+currentRouteMode = readStoredRouteMode();
+if (routeModeSelect) {
+  routeModeSelect.value = currentRouteMode;
+  routeModeSelect.addEventListener('change', (event) => {
+    setRouteMode(event.target.value);
+  });
+}
 
 const setMarkerVisibility = (marker, visible) => {
   if (!marker || typeof marker.setOpacity !== 'function') return;
@@ -1026,6 +1202,7 @@ const applyAddressSelection = (item, targetInput, targetSuggestions) => {
   const coords = extractCoordinates(item);
   if (!coords) return;
   activeSelectionToken += 1;
+  clearActiveRoute();
   const label = formatAddressLabel(item);
   if (targetInput) {
     targetInput.value = label.title;
@@ -1130,29 +1307,6 @@ document.addEventListener('click', (event) => {
   clearSuggestions(addressSuggestions);
 });
 
-const fetchRoute = async (from, to) => {
-  if (!from || !to) return;
-  const url = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error('Ruteoppslag feilet');
-  const data = await response.json();
-  const route = data.routes?.[0];
-  if (!route) return;
-  const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
-  if (routeLine) routeLayer.removeLayer(routeLine);
-  routeLine = L.polyline(coords, { color: '#2563eb', weight: 5, opacity: 0.9 }).addTo(routeLayer);
-  const distanceLabel = formatRouteDistance(route.distance);
-  if (distanceLabel) {
-    routeLine.bindTooltip(distanceLabel, {
-      permanent: true,
-      direction: 'center',
-      className: 'route-distance-tooltip',
-      opacity: 1
-    }).openTooltip();
-  }
-  map.fitBounds(routeLine.getBounds().pad(0.2));
-};
-
 const routeToNearest = async (type) => {
   if (!fromSelection) return;
   const from = fromSelection.coords;
@@ -1161,7 +1315,7 @@ const routeToNearest = async (type) => {
     if (!response.ok) throw new Error('Nearest-oppslag feilet');
     const target = await response.json();
     if (!target || target.error) return;
-    fetchRoute(from, { lat: target.lat, lon: target.lon });
+    await renderRoute(from, { lat: target.lat, lon: target.lon });
   } catch (error) {
     console.error('Kunne ikke hente nærmeste punkt', error);
   }
@@ -1198,6 +1352,7 @@ const reverseGeocode = async (lat, lon) => {
 map.on('click', async (event) => {
   const { lat, lng } = event.latlng;
   const selectionToken = ++activeSelectionToken;
+  clearActiveRoute();
   if (addressMarker) addressLayer.removeLayer(addressMarker);
   addressMarker = L.marker([lat, lng]).addTo(addressLayer);
   const fallbackLabel = {
