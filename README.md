@@ -31,12 +31,20 @@ cd safemap
 # host=
 # port=
 # dbname=
+# ROUTING_DRIVING_BASE_URL=https://router.project-osrm.org
+# ROUTING_DRIVING_PROFILE=driving
+# ROUTING_WALKING_BASE_URL=
+# ROUTING_WALKING_PROFILE=foot
 
 # Bygg og start appen
 docker compose up --build
 ```
 
 Appen blir tilgjengelig på `http://localhost:8000`.
+
+For ekte gangruting ma `ROUTING_WALKING_BASE_URL` peke til en egen rutetjeneste
+som er bygget for gaaende pa et `Vegnett Pluss`-basert gangnett, for eksempel
+en OSRM-instans med `foot`-profil bygget fra gangbare Vegnett Pluss-lenker.
 
 `docker compose down` stopper appen.
 
@@ -62,16 +70,33 @@ filene kan speiles inn i PostGIS for spatial SQL-analyse.
 python3 scripts/import_geojson_to_postgis.py --dataset all
 ```
 
+For a hente et gangnett kun fra `Vegnett Pluss`:
+
+```bash
+python3 scripts/fetch_vegnett_pluss_gangnett.py --kommune 4204
+```
+
+Dette skriver `src/vegnett_pluss_gangnett.geojson` med gangbare lenker som
+`fortau`, `gangfelt`, `gang- og sykkelveg`, `gangveg`, `gagate` og `trapp`
+fra NVDB Vegnett Pluss. Turruter er ikke med.
+
 Eller i prosjektets Docker-miljo:
 
 ```bash
 docker compose exec safemap python /scripts/import_geojson_to_postgis.py --dataset all
 ```
 
+For aa importere Vegnett Pluss-gangnettet til PostGIS:
+
+```bash
+python3 scripts/import_geojson_to_postgis.py --dataset vegnett_gangnett
+```
+
 Dette oppretter og fyller disse tabellene:
 
 - `sykehus_points`
 - `legevakt_points`
+- `vegnett_pluss_gangnett` (ved eksplisitt import)
 
 For aa kun validere JSON-formatet uten databaseendringer:
 

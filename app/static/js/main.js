@@ -447,19 +447,16 @@ const ROUTE_MODE_STORAGE_KEY = 'safemap:route-mode';
 const routeModes = {
   driving: {
     label: 'Bilvei',
-    osrmProfile: 'driving',
     lineColor: '#2563eb',
     dashArray: null
   },
   walking: {
     label: 'Gangvei',
-    osrmProfile: 'walking',
     lineColor: '#16a34a',
     dashArray: '10 6'
   },
   air: {
     label: 'Luftlinje',
-    osrmProfile: null,
     lineColor: '#7c3aed',
     dashArray: '8 8'
   }
@@ -565,24 +562,14 @@ const buildRouteSummary = (mode, distanceMeters, durationSeconds = null) => {
   return `${getRouteModeLabel(mode)}: ${distanceLabel}`;
 };
 
-const drawAirRoute = (from, to) => {
-  const distanceMeters = haversineKm(from, to) * 1000;
-  drawRouteLine(
-    [
-      [from.lat, from.lon],
-      [to.lat, to.lon]
-    ],
-    buildRouteSummary('air', distanceMeters),
-    'air'
-  );
-};
-
-const fetchOsrmRoute = async (from, to, profile) => {
-  const url = `https://router.project-osrm.org/route/v1/${profile}/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
+const fetchRouteData = async (from, to, mode) => {
+  const url = `/api/route?mode=${encodeURIComponent(mode)}&from_lat=${from.lat}&from_lon=${from.lon}&to_lat=${to.lat}&to_lon=${to.lon}`;
   const response = await fetch(url);
-  if (!response.ok) throw new Error('Ruteoppslag feilet');
-  const data = await response.json();
-  return data.routes?.[0] || null;
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Ruteoppslag feilet');
+  }
+  return payload;
 };
 
 const renderRoute = async (from, to) => {
@@ -591,26 +578,29 @@ const renderRoute = async (from, to) => {
   activeRoute = { from: { ...from }, to: { ...to } };
   const requestToken = ++routeRequestToken;
   const mode = currentRouteMode;
-  const config = getRouteModeConfig(mode);
-
-  if (mode === 'air' || !config.osrmProfile) {
-    drawAirRoute(from, to);
-    return;
-  }
 
   try {
-    const route = await fetchOsrmRoute(from, to, config.osrmProfile);
+    const route = await fetchRouteData(from, to, mode);
     if (requestToken !== routeRequestToken || mode !== currentRouteMode) return;
     if (!route) {
       showMapStatusPopup(`Fant ingen ${getRouteModeLabel(mode).toLowerCase()} mellom punktene.`);
       return;
     }
-    const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
-    drawRouteLine(coords, buildRouteSummary(mode, route.distance, route.duration), mode);
+    const coordinates = route.geometry?.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length < 2) {
+      throw new Error('Rutemotoren returnerte ugyldig geometri.');
+    }
+    const coords = coordinates.map(([lon, lat]) => [lat, lon]);
+    drawRouteLine(
+      coords,
+      buildRouteSummary(mode, route.distance_meters, route.duration_seconds),
+      mode
+    );
   } catch (error) {
     if (requestToken !== routeRequestToken) return;
     clearRouteLine();
-    showMapStatusPopup(`Kunne ikke vise ${getRouteModeLabel(mode).toLowerCase()}.`);
+    const message = error instanceof Error ? error.message : `Kunne ikke vise ${getRouteModeLabel(mode).toLowerCase()}.`;
+    showMapStatusPopup(message);
     throw error;
   }
 };
@@ -1311,12 +1301,19 @@ const routeToNearest = async (type) => {
   if (!fromSelection) return;
   const from = fromSelection.coords;
   try {
-    const response = await fetch(`/api/nearest?type=${type}&lat=${from.lat}&lon=${from.lon}`);
-    if (!response.ok) throw new Error('Nearest-oppslag feilet');
-    const target = await response.json();
+    const response = await fetch(
+      `/api/nearest?type=${type}&lat=${from.lat}&lon=${from.lon}&mode=${encodeURIComponent(currentRouteMode)}`
+    );
+    const target = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(target?.error || 'Nearest-oppslag feilet');
+    }
     if (!target || target.error) return;
     await renderRoute(from, { lat: target.lat, lon: target.lon });
   } catch (error) {
+    if (error instanceof Error) {
+      showMapStatusPopup(error.message);
+    }
     console.error('Kunne ikke hente nærmeste punkt', error);
   }
 };

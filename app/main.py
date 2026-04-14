@@ -15,6 +15,7 @@ import zipfile
 from threading import Lock
 from typing import List, Dict, Any, Optional
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest, urlopen
 from pyproj import Transformer
 
@@ -35,6 +36,10 @@ PASSWORD = os.getenv("password")
 HOST = os.getenv("host")
 PORT = os.getenv("port")
 DBNAME = os.getenv("dbname")
+ROUTING_DRIVING_BASE_URL = os.getenv("ROUTING_DRIVING_BASE_URL", "https://router.project-osrm.org").strip()
+ROUTING_DRIVING_PROFILE = os.getenv("ROUTING_DRIVING_PROFILE", "driving").strip() or "driving"
+ROUTING_WALKING_BASE_URL = os.getenv("ROUTING_WALKING_BASE_URL", "").strip()
+ROUTING_WALKING_PROFILE = os.getenv("ROUTING_WALKING_PROFILE", "foot").strip() or "foot"
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -423,6 +428,88 @@ def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r * math.asin(math.sqrt(a))
 
 
+def _get_route_mode_settings(mode: str) -> Dict[str, str]:
+    normalized_mode = (mode or "").strip().lower()
+    if normalized_mode == "driving":
+        return {
+            "label": "Bilvei",
+            "base_url": ROUTING_DRIVING_BASE_URL,
+            "profile": ROUTING_DRIVING_PROFILE,
+        }
+    if normalized_mode == "walking":
+        return {
+            "label": "Gangvei",
+            "base_url": ROUTING_WALKING_BASE_URL,
+            "profile": ROUTING_WALKING_PROFILE,
+        }
+    raise ValueError("Ugyldig rutemodus. Bruk driving eller walking.")
+
+
+def _build_osrm_route_url(
+    base_url: str,
+    profile: str,
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+) -> str:
+    query = urlencode(
+        {
+            "overview": "full",
+            "geometries": "geojson",
+        }
+    )
+    return (
+        f"{base_url.rstrip('/')}/route/v1/{profile}/"
+        f"{from_lon},{from_lat};{to_lon},{to_lat}?{query}"
+    )
+
+
+def _fetch_routed_path(
+    mode: str,
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+) -> Dict[str, Any]:
+    settings = _get_route_mode_settings(mode)
+    base_url = settings["base_url"]
+    profile = settings["profile"]
+
+    if not base_url:
+        guidance = (
+            "til en rutetjeneste som faktisk er bygget for denne modusen."
+            if mode != "walking"
+            else "til en gangruter bygget paa Vegnett Pluss."
+        )
+        raise RuntimeError(
+            f"{settings['label']} er ikke konfigurert. Sett ROUTING_{mode.upper()}_BASE_URL i backend-miljoet "
+            f"{guidance}"
+        )
+
+    payload = _http_json_request(
+        _build_osrm_route_url(base_url, profile, from_lat, from_lon, to_lat, to_lon)
+    )
+    routes = payload.get("routes")
+    if not isinstance(routes, list) or not routes:
+        raise RuntimeError(f"Rutemotoren returnerte ingen {settings['label'].lower()} for dette punktparet.")
+
+    route = routes[0]
+    geometry = route.get("geometry") or {}
+    coordinates = geometry.get("coordinates")
+    if geometry.get("type") != "LineString" or not isinstance(coordinates, list) or len(coordinates) < 2:
+        raise RuntimeError("Rutemotoren returnerte ugyldig geometri.")
+
+    return {
+        "mode": mode,
+        "label": settings["label"],
+        "distance_meters": route.get("distance"),
+        "duration_seconds": route.get("duration"),
+        "geometry": geometry,
+        "provider_profile": profile,
+    }
+
+
 def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
     with open(file_path, "r", encoding="utf-8") as file:
         data = json.load(file)
@@ -772,9 +859,17 @@ def get_shelters(force_refresh: bool = False):
 
 
 @app.get("/api/nearest")
-def get_nearest_point(type: str, lat: float, lon: float):
+def get_nearest_point(type: str, lat: float, lon: float, mode: str = "air"):
     if type not in {"hospital", "legevakt", "shelter"}:
-        return {"error": "Ugyldig type. Bruk hospital, legevakt eller shelter."}
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Ugyldig type. Bruk hospital, legevakt eller shelter."},
+        )
+    if mode not in {"air", "driving", "walking"}:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Ugyldig rutemodus. Bruk air, driving eller walking."},
+        )
 
     try:
         if type == "hospital":
@@ -784,13 +879,92 @@ def get_nearest_point(type: str, lat: float, lon: float):
         else:
             points = _load_shelter_points()
     except Exception as exc:
-        return {"error": f"Klarte ikke hente data for {type}: {exc}"}
+        return JSONResponse(
+            status_code=502,
+            content={"error": f"Klarte ikke hente data for {type}: {exc}"},
+        )
 
     if not points:
-        return {"error": "Ingen punkter tilgjengelig."}
+        return JSONResponse(status_code=404, content={"error": "Ingen punkter tilgjengelig."})
 
-    closest = min(points, key=lambda p: _haversine(lat, lon, p["lat"], p["lon"]))
-    return closest
+    sorted_points = sorted(points, key=lambda p: _haversine(lat, lon, p["lat"], p["lon"]))
+    if mode == "air":
+        return sorted_points[0]
+
+    best_point = None
+    best_distance_meters = None
+    candidate_points = sorted_points[:8]
+
+    try:
+        for point in candidate_points:
+            route = _fetch_routed_path(mode, lat, lon, point["lat"], point["lon"])
+            routed_distance = route.get("distance_meters")
+            if not isinstance(routed_distance, (int, float)) or not math.isfinite(routed_distance):
+                continue
+            if best_distance_meters is None or routed_distance < best_distance_meters:
+                best_distance_meters = float(routed_distance)
+                best_point = {
+                    **point,
+                    "route_distance_meters": round(float(routed_distance), 2),
+                    "route_mode": mode,
+                }
+    except RuntimeError as exc:
+        status_code = 501 if "ikke konfigurert" in str(exc) else 502
+        return JSONResponse(status_code=status_code, content={"error": str(exc)})
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Klarte ikke beregne naermeste {type} for {mode}: {exc}"},
+        )
+
+    if best_point is None:
+        return JSONResponse(
+            status_code=502,
+            content={"error": f"Fant ingen gyldig {mode}-rute til {type}."},
+        )
+
+    return best_point
+
+
+@app.get("/api/route")
+def get_route(
+    mode: str,
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+):
+    if mode == "air":
+        distance_meters = _haversine(from_lat, from_lon, to_lat, to_lon) * 1000
+        return JSONResponse(
+            content={
+                "mode": "air",
+                "label": "Luftlinje",
+                "distance_meters": round(distance_meters, 2),
+                "duration_seconds": None,
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [from_lon, from_lat],
+                        [to_lon, to_lat],
+                    ],
+                },
+            }
+        )
+
+    try:
+        payload = _fetch_routed_path(mode, from_lat, from_lon, to_lat, to_lon)
+        return JSONResponse(content=payload)
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except RuntimeError as exc:
+        status_code = 501 if "ikke konfigurert" in str(exc) else 502
+        return JSONResponse(status_code=status_code, content={"error": str(exc)})
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Klarte ikke hente rute: {exc}"},
+        )
 
 
 @app.get("/api/location-analysis")
