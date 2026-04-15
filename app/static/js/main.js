@@ -552,18 +552,29 @@ const drawRouteLine = (latLngs, summary, mode = currentRouteMode) => {
   map.fitBounds(routeLine.getBounds().pad(0.2));
 };
 
-const buildRouteSummary = (mode, distanceMeters, durationSeconds = null) => {
+const buildRouteSummary = (mode, distanceMeters, durationSeconds = null, estimated = false) => {
   const distanceLabel = formatRouteDistance(distanceMeters);
   if (!distanceLabel) return '';
   const durationLabel = formatRouteDuration(durationSeconds);
+  const estimatedLabel = estimated ? ' • estimert tilgang' : '';
   if (durationLabel && mode !== 'air') {
-    return `${getRouteModeLabel(mode)}: ${distanceLabel} • ${durationLabel}`;
+    return `${getRouteModeLabel(mode)}: ${distanceLabel} • ${durationLabel}${estimatedLabel}`;
   }
-  return `${getRouteModeLabel(mode)}: ${distanceLabel}`;
+  return `${getRouteModeLabel(mode)}: ${distanceLabel}${estimatedLabel}`;
 };
 
-const fetchRouteData = async (from, to, mode) => {
-  const url = `/api/route?mode=${encodeURIComponent(mode)}&from_lat=${from.lat}&from_lon=${from.lon}&to_lat=${to.lat}&to_lon=${to.lon}`;
+const fetchRouteData = async (from, to, mode, targetKind = null) => {
+  const params = new URLSearchParams({
+    mode,
+    from_lat: from.lat,
+    from_lon: from.lon,
+    to_lat: to.lat,
+    to_lon: to.lon
+  });
+  if (targetKind) {
+    params.set('target_kind', targetKind);
+  }
+  const url = `/api/route?${params.toString()}`;
   const response = await fetch(url);
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
@@ -572,8 +583,8 @@ const fetchRouteData = async (from, to, mode) => {
   return payload;
 };
 
-const renderRoutePayload = (from, to, route, mode = currentRouteMode) => {
-  activeRoute = { from: { ...from }, to: { ...to } };
+const renderRoutePayload = (from, to, route, mode = currentRouteMode, targetKind = null) => {
+  activeRoute = { from: { ...from }, to: { ...to }, targetKind };
   const coordinates = route?.geometry?.coordinates;
   if (!Array.isArray(coordinates) || coordinates.length < 2) {
     throw new Error('Rutemotoren returnerte ugyldig geometri.');
@@ -581,26 +592,26 @@ const renderRoutePayload = (from, to, route, mode = currentRouteMode) => {
   const coords = coordinates.map(([lon, lat]) => [lat, lon]);
   drawRouteLine(
     coords,
-    buildRouteSummary(mode, route.distance_meters, route.duration_seconds),
+    buildRouteSummary(mode, route.distance_meters, route.duration_seconds, Boolean(route?.estimated)),
     mode
   );
 };
 
-const renderRoute = async (from, to) => {
+const renderRoute = async (from, to, targetKind = null) => {
   if (!from || !to) return;
 
-  activeRoute = { from: { ...from }, to: { ...to } };
+  activeRoute = { from: { ...from }, to: { ...to }, targetKind };
   const requestToken = ++routeRequestToken;
   const mode = currentRouteMode;
 
   try {
-    const route = await fetchRouteData(from, to, mode);
+    const route = await fetchRouteData(from, to, mode, targetKind);
     if (requestToken !== routeRequestToken || mode !== currentRouteMode) return;
     if (!route) {
       showMapStatusPopup(`Fant ingen ${getRouteModeLabel(mode).toLowerCase()} mellom punktene.`);
       return;
     }
-    renderRoutePayload(from, to, route, mode);
+    renderRoutePayload(from, to, route, mode, targetKind);
   } catch (error) {
     if (requestToken !== routeRequestToken) return;
     clearRouteLine();
@@ -618,7 +629,7 @@ const setRouteMode = (mode) => {
   }
   persistRouteMode(mode);
   if (activeRoute) {
-    renderRoute(activeRoute.from, activeRoute.to).catch((error) => {
+    renderRoute(activeRoute.from, activeRoute.to, activeRoute.targetKind || null).catch((error) => {
       console.error('Kunne ikke oppdatere rute for valgt modus', error);
     });
   }
@@ -1318,10 +1329,10 @@ const routeToNearest = async (type) => {
     if (mode !== currentRouteMode) return;
     const to = { lat: target.lat, lon: target.lon };
     if (target.route && target.route.mode === mode) {
-      renderRoutePayload(from, to, target.route, mode);
+      renderRoutePayload(from, to, target.route, mode, type);
       return;
     }
-    await renderRoute(from, to);
+    await renderRoute(from, to, type);
   } catch (error) {
     if (error instanceof Error) {
       showMapStatusPopup(error.message);

@@ -2,8 +2,10 @@
 """
 Fetch walkable NVDB Vegnett Pluss links and write them as GeoJSON.
 
-The script intentionally limits itself to pedestrian-relevant link types from
-Vegnett Pluss. Turruter are not included.
+The graph is scoped to routes that are realistic to walk in a crisis: dedicated
+walking infrastructure, large paths/trails, and ordinary road links that are
+still defensible to walk when no separate gangvei exists. Turruter are not
+included.
 """
 
 from __future__ import annotations
@@ -18,19 +20,33 @@ from urllib.request import Request as UrlRequest, urlopen
 
 from pyproj import Transformer
 
-NVDB_VEGNETT_URL = "https://nvdbapiles.atlas.vegvesen.no/vegnett/api/v4/veglenkesekvenser"
+NVDB_VEGNETT_URL = "https://nvdbapiles.atlas.vegvesen.no/vegnett/api/v4/veglenkesekvenser/segmentert"
 DEFAULT_OUTPUT = Path(__file__).resolve().parent.parent / "src" / "vegnett_pluss_gangnett.geojson"
 DEFAULT_PAGE_SIZE = 200
 
-# Pedestrian link types from NVDB Vegnett Pluss. This keeps the dataset scoped
-# to walking infrastructure instead of all road links.
+# Dedicated walking links and larger trail types from NVDB Vegnett Pluss.
 WALKING_TYPE_VALUES = {
     "Fortau",
     "Gangfelt",
     "Gang- og sykkelveg",
     "Gangveg",
     "Gågate",
+    "Sti",
+    "Stitrapp",
+    "Traktorveg",
     "Trapp",
+    "Sykkelveg",
+}
+SHARED_ROAD_TYPE_VALUES = {
+    "Enkel bilveg",
+    "Gatetun",
+    "Kanalisert veg",
+    "Rundkjøring",
+}
+NON_WALKABLE_VEHICLE_TYPE_VALUES = {
+    "Motorveg",
+    "Motortrafikkveg",
+    "Rampe",
 }
 
 _transformers: dict[int, Transformer] = {}
@@ -165,8 +181,56 @@ def build_source_key(segment: dict[str, Any]) -> str:
     )
 
 
+def _normalize_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _find_nested_value(payload: Any, key: str) -> str | None:
+    if isinstance(payload, dict):
+        direct_value = _normalize_text(payload.get(key))
+        if direct_value:
+            return direct_value
+        for value in payload.values():
+            nested_value = _find_nested_value(value, key)
+            if nested_value:
+                return nested_value
+    elif isinstance(payload, list):
+        for item in payload:
+            nested_value = _find_nested_value(item, key)
+            if nested_value:
+                return nested_value
+    return None
+
+
+def extract_vegsystem_context(segment: dict[str, Any]) -> tuple[str | None, str | None, str | None]:
+    vegsystemreferanse = segment.get("vegsystemreferanse") or {}
+    vegsystem = vegsystemreferanse.get("vegsystem") or {}
+    vegkategori = _normalize_text(vegsystem.get("vegkategori"))
+    trafikantgruppe = _find_nested_value(vegsystemreferanse, "trafikantgruppe")
+    kortform = _normalize_text(vegsystemreferanse.get("kortform"))
+    return vegkategori, trafikantgruppe, kortform
+
+
+def is_walkable_segment(segment: dict[str, Any]) -> bool:
+    type_veg = _normalize_text(segment.get("typeVeg"))
+    if type_veg in WALKING_TYPE_VALUES:
+        return True
+
+    _, trafikantgruppe, _ = extract_vegsystem_context(segment)
+    if type_veg in NON_WALKABLE_VEHICLE_TYPE_VALUES:
+        return False
+    if trafikantgruppe == "G":
+        return True
+    if trafikantgruppe == "K" and type_veg in SHARED_ROAD_TYPE_VALUES:
+        return True
+    return False
+
+
 def build_feature(segment: dict[str, Any]) -> dict[str, Any] | None:
-    if segment.get("typeVeg") not in WALKING_TYPE_VALUES:
+    if not is_walkable_segment(segment):
         return None
     if segment.get("sluttdato"):
         return None
@@ -180,6 +244,7 @@ def build_feature(segment: dict[str, Any]) -> dict[str, Any] | None:
     coordinates = transform_coordinates(parse_linestring_wkt(wkt), srid)
     vegsystemreferanse = segment.get("vegsystemreferanse") or {}
     adresse = segment.get("adresse") or {}
+    vegkategori, trafikantgruppe, vegsystem_kortform = extract_vegsystem_context(segment)
 
     return {
         "type": "Feature",
@@ -201,8 +266,10 @@ def build_feature(segment: dict[str, Any]) -> dict[str, Any] | None:
             "kommune": segment.get("kommune") or geometry.get("kommune"),
             "fylke": segment.get("fylke"),
             "topologinivaa": segment.get("topologinivå"),
+            "vegkategori": vegkategori,
+            "trafikantgruppe": trafikantgruppe,
             "adresse_navn": adresse.get("navn"),
-            "vegsystemreferanse": vegsystemreferanse.get("kortform"),
+            "vegsystemreferanse": vegsystem_kortform or vegsystemreferanse.get("kortform"),
         },
     }
 
@@ -222,37 +289,19 @@ def fetch_features_for_kommune(
         payload = http_json_request(next_url, client_name)
         objects = payload.get("objekter") or []
         if not isinstance(objects, list):
-            raise RuntimeError("NVDB API mangler objekter-liste for veglenkesekvenser.")
+            raise RuntimeError("NVDB API mangler objekter-liste for segmenterte veglenkesekvenser.")
 
-        for sequence in objects:
-            if not isinstance(sequence, dict):
+        for segment in objects:
+            if not isinstance(segment, dict):
                 continue
-            sequence_id = sequence.get("veglenkesekvensid")
-            port_node_map: dict[Any, Any] = {}
-            for port in sequence.get("porter") or []:
-                if not isinstance(port, dict):
-                    continue
-                node_id = ((port.get("tilkobling") or {}).get("nodeid"))
-                if node_id is None:
-                    continue
-                port_node_map[port.get("id")] = node_id
-            for segment in sequence.get("veglenker") or []:
-                if not isinstance(segment, dict):
-                    continue
-                segment = {
-                    **segment,
-                    "veglenkesekvensid": segment.get("veglenkesekvensid") or sequence_id,
-                    "startnode": segment.get("startnode") or port_node_map.get(segment.get("startport")),
-                    "sluttnode": segment.get("sluttnode") or port_node_map.get(segment.get("sluttport")),
-                }
-                feature = build_feature(segment)
-                if feature is None:
-                    continue
-                source_key = str(feature["properties"]["source_key"])
-                if source_key in seen_keys:
-                    continue
-                seen_keys.add(source_key)
-                features.append(feature)
+            feature = build_feature(segment)
+            if feature is None:
+                continue
+            source_key = str(feature["properties"]["source_key"])
+            if source_key in seen_keys:
+                continue
+            seen_keys.add(source_key)
+            features.append(feature)
 
         page_count += 1
         metadata = payload.get("metadata") or {}
@@ -272,7 +321,7 @@ def write_geojson(output_path: Path, features: list[dict[str, Any]], kommuner: l
         "metadata": {
             "source": "NVDB Vegnett Pluss",
             "kommuner": kommuner,
-            "allowed_type_veg": sorted(WALKING_TYPE_VALUES),
+            "included_type_veg": sorted(WALKING_TYPE_VALUES | SHARED_ROAD_TYPE_VALUES),
             "feature_count": len(features),
         },
         "features": features,

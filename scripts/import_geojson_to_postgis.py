@@ -48,6 +48,15 @@ class DatasetConfig:
     fallback_name: str | None = None
 
 
+@dataclass(frozen=True)
+class ResolvedDatasetConfig:
+    cli_name: str
+    table_name: str
+    source_path: Path
+    geometry_kind: str
+    fallback_name: str | None = None
+
+
 DATASETS: dict[str, DatasetConfig] = {
     "sykehus": DatasetConfig(
         cli_name="sykehus",
@@ -128,7 +137,14 @@ def build_source_key(
     return hashlib.sha1(encoded).hexdigest()
 
 
-def load_point_rows(config: DatasetConfig) -> list[tuple[Any, ...]]:
+def _relative_source_label(source_path: Path) -> str:
+    try:
+        return str(source_path.resolve().relative_to(PROJECT_ROOT.resolve()))
+    except ValueError:
+        return str(source_path.resolve())
+
+
+def load_point_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
     if not config.source_path.exists():
         raise FileNotFoundError(f"Fant ikke kildefil: {config.source_path}")
 
@@ -162,7 +178,7 @@ def load_point_rows(config: DatasetConfig) -> list[tuple[Any, ...]]:
         postnummer = normalize_text(properties.get("postnummer"))
         poststed = normalize_text(properties.get("poststed"))
         kommune = normalize_text(properties.get("kommune"))
-        source_file = str(config.source_path.relative_to(PROJECT_ROOT))
+        source_file = _relative_source_label(config.source_path)
         source_key = build_source_key(config, feature_index, properties, lon, lat)
 
         rows.append(
@@ -193,7 +209,7 @@ def coerce_float(value: Any) -> float | None:
         return None
 
 
-def load_line_rows(config: DatasetConfig) -> list[tuple[Any, ...]]:
+def load_line_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
     if not config.source_path.exists():
         raise FileNotFoundError(f"Fant ikke kildefil: {config.source_path}")
 
@@ -226,7 +242,7 @@ def load_line_rows(config: DatasetConfig) -> list[tuple[Any, ...]]:
                 lat=float(coords[0][1]),
             )
 
-        source_file = str(config.source_path.relative_to(PROJECT_ROOT))
+        source_file = _relative_source_label(config.source_path)
         rows.append(
             (
                 source_key,
@@ -244,7 +260,7 @@ def load_line_rows(config: DatasetConfig) -> list[tuple[Any, ...]]:
     return rows
 
 
-def load_geojson_rows(config: DatasetConfig) -> list[tuple[Any, ...]]:
+def load_geojson_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
     if config.geometry_kind == "point":
         return load_point_rows(config)
     if config.geometry_kind == "line":
@@ -471,6 +487,15 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Valider GeoJSON og skriv sammendrag uten aa koble til databasen.",
     )
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=None,
+        help=(
+            "Overstyr kildefilen for valgt dataset. Kan bare brukes sammen med "
+            "ett konkret dataset, ikke --dataset all."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -480,9 +505,28 @@ def selected_datasets(dataset_name: str) -> list[DatasetConfig]:
     return [DATASETS[dataset_name]]
 
 
+def resolve_datasets(dataset_name: str, source_override: Path | None) -> list[ResolvedDatasetConfig]:
+    selected = selected_datasets(dataset_name)
+    if source_override is not None and len(selected) != 1:
+        raise ValueError("--source kan bare brukes sammen med ett konkret dataset.")
+
+    resolved: list[ResolvedDatasetConfig] = []
+    for config in selected:
+        resolved.append(
+            ResolvedDatasetConfig(
+                cli_name=config.cli_name,
+                table_name=config.table_name,
+                source_path=source_override.resolve() if source_override is not None else config.source_path,
+                geometry_kind=config.geometry_kind,
+                fallback_name=config.fallback_name,
+            )
+        )
+    return resolved
+
+
 def main() -> None:
     args = parse_args()
-    datasets = selected_datasets(args.dataset)
+    datasets = resolve_datasets(args.dataset, args.source)
 
     rows_by_dataset: list[tuple[DatasetConfig, list[tuple[Any, ...]]]] = []
     for config in datasets:

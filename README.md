@@ -37,6 +37,12 @@ cd safemap
 # WALKING_NETWORK_CACHE_TTL_SECONDS=300
 # WALKING_MAX_SNAP_DISTANCE_METERS=1500
 # WALKING_SPEED_MPS=1.4
+# WALKING_TRAIL_SPEED_MPS=1.2
+# WALKING_TRACTOR_ROAD_SPEED_MPS=1.3
+# WALKING_STAIRS_SPEED_MPS=0.8
+# WALKING_NEAREST_HOSPITAL_POINT_LIMIT=0
+# WALKING_NEAREST_LEGEVAKT_POINT_LIMIT=24
+# WALKING_NEAREST_SHELTER_POINT_LIMIT=32
 
 # Bygg og start appen
 docker compose up --build
@@ -46,7 +52,9 @@ Appen blir tilgjengelig på `http://localhost:8000`.
 
 Gangruting bygges lokalt paa `vegnett_pluss_gangnett` i databasen. For at
 `Gangvei` skal fungere maa dere derfor hente og importere `Vegnett Pluss`
-for de kommunene dere vil route i.
+for de kommunene dere vil route i. Walking optimaliserer paa estimert gangtid,
+ikke bare meter, og bruker derfor bade ganginfrastruktur, store stier og
+forsvarlige veglenker der egen gangvei mangler.
 
 `docker compose down` stopper appen.
 
@@ -79,8 +87,9 @@ python3 scripts/fetch_vegnett_pluss_gangnett.py --kommune 4204
 ```
 
 Dette skriver `src/vegnett_pluss_gangnett.geojson` med gangbare lenker som
-`fortau`, `gangfelt`, `gang- og sykkelveg`, `gangveg`, `gagate` og `trapp`
-fra NVDB Vegnett Pluss. Turruter er ikke med.
+`fortau`, `gangfelt`, `gang- og sykkelveg`, `gangveg`, `gagate`, `sti`,
+`traktorveg`, `trapp` og forsvarlige veglenker som `enkel bilveg` der det er
+nodvendig. Turruter er ikke med.
 
 Eller i prosjektets Docker-miljo:
 
@@ -95,7 +104,8 @@ python3 scripts/import_geojson_to_postgis.py --dataset vegnett_gangnett
 ```
 
 Etter import brukes tabellen `vegnett_pluss_gangnett` direkte av backend sin
-lokale `walking`-ruter for aa finne korteste gangvei.
+lokale `walking`-ruter for aa finne raskeste gangrute basert paa estimert
+gangtid.
 
 Dette oppretter og fyller disse tabellene:
 
