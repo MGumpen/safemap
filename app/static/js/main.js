@@ -400,6 +400,16 @@ if (logoButton) {
   });
 }
 
+const desktopHeaderControlsAnchor = document.getElementById('desktop-header-controls-anchor');
+const appHeaderControls = document.getElementById('app-header-controls');
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const mobileMenuClose = document.getElementById('mobile-menu-close');
+const mobileMenu = document.getElementById('mobile-menu');
+const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
+const mobileMenuHeaderControlsSlot = document.getElementById('mobile-menu-header-controls');
+const mobileMenuLayerControlsSlot = document.getElementById('mobile-menu-layer-controls');
+const desktopLayerControlsAnchor = document.getElementById('desktop-layer-controls-anchor');
+const layerControls = document.getElementById('layer-controls');
 const addressInput = document.getElementById('address-search');
 const addressSuggestions = document.getElementById('address-suggestions');
 const routeModeSelect = document.getElementById('route-mode');
@@ -429,6 +439,8 @@ let analysisRequestToken = 0;
 let activeSelectionToken = 0;
 let analysisZonesRequestToken = 0;
 let analysisZonesRefreshTimer = null;
+const mobileMenuMediaQuery = window.matchMedia('(max-width: 768px)');
+let mobileMenuOpen = false;
 const analysisState = {
   loading: false,
   error: '',
@@ -462,6 +474,81 @@ const routeModes = {
   }
 };
 let currentRouteMode = 'driving';
+
+const isMobileLayout = () => mobileMenuMediaQuery.matches;
+
+const setMobileMenuOpen = (isOpen) => {
+  const nextOpen = Boolean(isOpen) && isMobileLayout();
+  mobileMenuOpen = nextOpen;
+  document.body.classList.toggle('is-mobile-menu-open', nextOpen);
+  if (mobileMenu) {
+    mobileMenu.hidden = !nextOpen;
+    mobileMenu.classList.toggle('is-open', nextOpen);
+    mobileMenu.setAttribute('aria-hidden', nextOpen ? 'false' : 'true');
+  }
+  if (mobileMenuBackdrop) {
+    mobileMenuBackdrop.hidden = !nextOpen;
+  }
+  if (mobileMenuToggle) {
+    mobileMenuToggle.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+  }
+};
+
+const closeMobileMenu = () => {
+  if (!mobileMenuOpen) return;
+  setMobileMenuOpen(false);
+};
+
+const syncResponsiveLayout = () => {
+  const mobileLayout = isMobileLayout();
+  document.body.classList.toggle('is-mobile-layout', mobileLayout);
+
+  if (
+    mobileLayout
+    && appHeaderControls
+    && mobileMenuHeaderControlsSlot
+    && appHeaderControls.parentElement !== mobileMenuHeaderControlsSlot
+  ) {
+    mobileMenuHeaderControlsSlot.appendChild(appHeaderControls);
+  }
+
+  if (
+    mobileLayout
+    && layerControls
+    && mobileMenuLayerControlsSlot
+    && layerControls.parentElement !== mobileMenuLayerControlsSlot
+  ) {
+    mobileMenuLayerControlsSlot.appendChild(layerControls);
+  }
+
+  if (
+    !mobileLayout
+    && appHeaderControls
+    && desktopHeaderControlsAnchor
+    && appHeaderControls.parentElement !== desktopHeaderControlsAnchor
+  ) {
+    desktopHeaderControlsAnchor.appendChild(appHeaderControls);
+  }
+
+  if (
+    !mobileLayout
+    && layerControls
+    && desktopLayerControlsAnchor
+    && layerControls.parentElement !== desktopLayerControlsAnchor
+  ) {
+    desktopLayerControlsAnchor.appendChild(layerControls);
+  }
+
+  if (!mobileLayout) {
+    setMobileMenuOpen(false);
+  }
+};
+
+const maybeCloseMobileMenu = () => {
+  if (isMobileLayout()) {
+    closeMobileMenu();
+  }
+};
 
 const formatRouteDistance = (distanceMeters) => {
   const km = Number(distanceMeters) / 1000;
@@ -642,6 +729,32 @@ if (routeModeSelect) {
     setRouteMode(event.target.value);
   });
 }
+
+if (mobileMenuToggle) {
+  mobileMenuToggle.addEventListener('click', () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  });
+}
+
+if (mobileMenuClose) {
+  mobileMenuClose.addEventListener('click', () => {
+    closeMobileMenu();
+  });
+}
+
+if (mobileMenuBackdrop) {
+  mobileMenuBackdrop.addEventListener('click', () => {
+    closeMobileMenu();
+  });
+}
+
+if (typeof mobileMenuMediaQuery.addEventListener === 'function') {
+  mobileMenuMediaQuery.addEventListener('change', syncResponsiveLayout);
+} else if (typeof mobileMenuMediaQuery.addListener === 'function') {
+  mobileMenuMediaQuery.addListener(syncResponsiveLayout);
+}
+
+syncResponsiveLayout();
 
 const setMarkerVisibility = (marker, visible) => {
   if (!marker || typeof marker.setOpacity !== 'function') return;
@@ -1232,6 +1345,7 @@ const applyAddressSelection = (item, targetInput, targetSuggestions) => {
   map.setView([coords.lat, coords.lon], Math.max(map.getZoom(), 14));
   updateLocationAnalysisLabel(label);
   fetchLocationAnalysis(coords, label);
+  maybeCloseMobileMenu();
 };
 
 const renderSuggestions = (items, target, targetInput) => {
@@ -1313,6 +1427,12 @@ document.addEventListener('click', (event) => {
   clearSuggestions(addressSuggestions);
 });
 
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeMobileMenu();
+  }
+});
+
 const routeToNearest = async (type) => {
   if (!fromSelection) return;
   const from = fromSelection.coords;
@@ -1330,9 +1450,11 @@ const routeToNearest = async (type) => {
     const to = { lat: target.lat, lon: target.lon };
     if (target.route && target.route.mode === mode) {
       renderRoutePayload(from, to, target.route, mode, type);
+      maybeCloseMobileMenu();
       return;
     }
     await renderRoute(from, to, type);
+    maybeCloseMobileMenu();
   } catch (error) {
     if (error instanceof Error) {
       showMapStatusPopup(error.message);
