@@ -158,6 +158,20 @@ def _walking_time_seconds(distance_meters: float, speed_mps: float) -> float:
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
+
+@app.on_event("startup")
+def _warm_runtime_caches_on_startup() -> None:
+    try:
+        _load_walking_network_graph()
+    except Exception as exc:
+        print(f"[startup] Klarte ikke forvarme walking-grafen: {exc}")
+
+    for file_name in ("sykehus.json", "legevakter.json"):
+        try:
+            _load_geojson_points(_find_data_file(file_name))
+        except Exception as exc:
+            print(f"[startup] Klarte ikke forvarme {file_name}: {exc}")
+
 # <changeLog>
 #   <change date="2026-02-23" author="Codex">
 #     <summary>Stabiliserte HTTPS-kall til Geonorge API for tilfluktsrom.</summary>
@@ -967,6 +981,155 @@ def _fetch_nearest_walking_edges(
         )
 
 
+def _fetch_nearest_walking_edges_batch(
+    points: List[Dict[str, Any]],
+    limit: int = 4,
+    connection: Optional[Any] = None,
+) -> Dict[int, List[Dict[str, Any]]]:
+    if not points:
+        return {}
+
+    owned_connection = connection is None
+    cursor = None
+    try:
+        if connection is None:
+            connection = _get_db_connection()
+        cursor = connection.cursor()
+
+        value_rows: List[sql.SQL] = []
+        params: List[Any] = []
+        for index, point in enumerate(points):
+            value_rows.append(sql.SQL("(%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326))"))
+            params.extend([index, float(point["lon"]), float(point["lat"])])
+        params.append(max(1, limit))
+
+        cursor.execute(
+            sql.SQL(
+                """
+                WITH input_points(input_key, geom) AS (
+                    VALUES {input_values}
+                )
+                SELECT
+                    input_points.input_key,
+                    e.id,
+                    e.source_node,
+                    e.target_node,
+                    e.type_veg,
+                    e.properties ->> 'trafikantgruppe' AS trafikantgruppe,
+                    COALESCE(e.length_meters, ST_Length(e.geom::geography)) AS length_meters,
+                    ST_AsGeoJSON(e.geom) AS geometry_json,
+                    ST_AsGeoJSON(ST_ClosestPoint(e.geom, input_points.geom)) AS snap_point_json,
+                    ST_LineLocatePoint(e.geom, input_points.geom) AS locate_ratio,
+                    ST_AsGeoJSON(ST_LineSubstring(e.geom, 0, ST_LineLocatePoint(e.geom, input_points.geom))) AS prefix_json,
+                    ST_AsGeoJSON(ST_LineSubstring(e.geom, ST_LineLocatePoint(e.geom, input_points.geom), 1)) AS suffix_json,
+                    ST_Distance(e.geom::geography, input_points.geom::geography) AS snap_distance_meters
+                FROM input_points
+                CROSS JOIN LATERAL (
+                    SELECT
+                        e.id,
+                        e.source_node,
+                        e.target_node,
+                        e.type_veg,
+                        e.properties,
+                        e.length_meters,
+                        e.geom
+                    FROM {table_name} e
+                    WHERE e.geom IS NOT NULL
+                      AND e.source_node IS NOT NULL
+                      AND e.target_node IS NOT NULL
+                    ORDER BY e.geom <-> input_points.geom
+                    LIMIT %s
+                ) e
+                ORDER BY input_points.input_key
+                """
+            ).format(
+                input_values=sql.SQL(", ").join(value_rows),
+                table_name=sql.Identifier(WALKING_NETWORK_TABLE),
+            ),
+            params,
+        )
+        rows = cursor.fetchall()
+    except Exception as exc:
+        raise RuntimeError(
+            f"Klarte ikke finne naermeste ganglenker i {WALKING_NETWORK_TABLE}. "
+            f"Detaljer: {exc}"
+        ) from exc
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if owned_connection and connection is not None:
+            connection.close()
+
+    grouped_candidates: Dict[int, Dict[str, List[Dict[str, Any]]]] = {
+        index: {"preferred": [], "fallback": []}
+        for index in range(len(points))
+    }
+
+    for row in rows:
+        input_index = int(row[0])
+        (
+            edge_id_raw,
+            source_node_raw,
+            target_node_raw,
+            type_veg_raw,
+            trafikantgruppe_raw,
+            length_raw,
+            geometry_json,
+            snap_point_json,
+            locate_ratio_raw,
+            prefix_json,
+            suffix_json,
+            snap_distance_raw,
+        ) = row[1:]
+
+        snap_coords = _extract_coords_from_geometry(snap_point_json)
+        if not snap_coords:
+            continue
+
+        snap_distance_meters = float(snap_distance_raw or 0.0)
+        locate_ratio = float(locate_ratio_raw or 0.0)
+        locate_ratio = max(0.0, min(1.0, locate_ratio))
+        total_length_meters = float(length_raw or 0.0)
+        travel_speed_mps = _walking_edge_speed_mps(type_veg_raw, trafikantgruppe_raw)
+        if travel_speed_mps is None:
+            continue
+
+        candidate = {
+            "edge_id": str(edge_id_raw),
+            "source_node": str(source_node_raw),
+            "target_node": str(target_node_raw),
+            "type_veg": str(type_veg_raw or "").strip(),
+            "trafikantgruppe": str(trafikantgruppe_raw or "").strip(),
+            "total_length_meters": total_length_meters,
+            "travel_speed_mps": travel_speed_mps,
+            "locate_ratio": locate_ratio,
+            "snap_distance_meters": snap_distance_meters,
+            "is_off_network_connector": snap_distance_meters > WALKING_MAX_SNAP_DISTANCE_METERS,
+            "edge_coords": _extract_coords_from_geometry(geometry_json),
+            "snap_coords": snap_coords,
+            "prefix_coords": _extract_coords_from_geometry(prefix_json),
+            "suffix_coords": _extract_coords_from_geometry(suffix_json),
+        }
+
+        candidate_group = grouped_candidates.setdefault(input_index, {"preferred": [], "fallback": []})
+        if snap_distance_meters <= WALKING_MAX_SNAP_DISTANCE_METERS:
+            candidate_group["preferred"].append(candidate)
+        else:
+            candidate_group["fallback"].append(candidate)
+
+    resolved_candidates: Dict[int, List[Dict[str, Any]]] = {}
+    for index in range(len(points)):
+        candidate_group = grouped_candidates.get(index) or {}
+        preferred_candidates = candidate_group.get("preferred") or []
+        fallback_candidates = candidate_group.get("fallback") or []
+        if preferred_candidates:
+            resolved_candidates[index] = preferred_candidates
+        elif fallback_candidates:
+            resolved_candidates[index] = fallback_candidates
+
+    return resolved_candidates
+
+
 def _fetch_nearest_walking_edge(lat: float, lon: float) -> Dict[str, Any]:
     return _fetch_nearest_walking_edges(lat, lon, limit=1)[0]
 
@@ -1058,6 +1221,59 @@ def _get_walking_target_access_candidates(
         }
 
     return selected_candidates
+
+
+def _get_walking_target_access_candidates_batch(
+    points: List[Dict[str, Any]],
+    edge_candidate_limit: int,
+    target_kind: Optional[str] = None,
+    connection: Optional[Any] = None,
+) -> List[List[Dict[str, Any]]]:
+    if not points:
+        return []
+
+    now = time.time()
+    results: List[Optional[List[Dict[str, Any]]]] = [None] * len(points)
+    missing_points: List[Dict[str, Any]] = []
+    missing_indexes: List[int] = []
+
+    with _walking_target_access_cache_lock:
+        for index, point in enumerate(points):
+            cache_key = _walking_target_access_cache_key(point["lat"], point["lon"], target_kind, edge_candidate_limit)
+            cached_entry = _walking_target_access_cache.get(cache_key)
+            if not isinstance(cached_entry, dict):
+                missing_points.append(point)
+                missing_indexes.append(index)
+                continue
+            expires_at = float(cached_entry.get("expires_at", 0.0) or 0.0)
+            cached_candidates = cached_entry.get("candidates")
+            if expires_at > now and isinstance(cached_candidates, list):
+                results[index] = cached_candidates
+            else:
+                missing_points.append(point)
+                missing_indexes.append(index)
+
+    if missing_points:
+        fetched_candidates = _fetch_nearest_walking_edges_batch(
+            missing_points,
+            limit=max(1, edge_candidate_limit, WALKING_TARGET_ACCESS_SCAN_LIMIT),
+            connection=connection,
+        )
+        cache_expires_at = time.time() + WALKING_NETWORK_CACHE_TTL_SECONDS
+
+        with _walking_target_access_cache_lock:
+            for local_index, point in enumerate(missing_points):
+                global_index = missing_indexes[local_index]
+                nearest_edges = fetched_candidates.get(local_index) or []
+                selected_candidates = _select_target_access_candidates(nearest_edges, target_kind=target_kind)
+                results[global_index] = selected_candidates
+                cache_key = _walking_target_access_cache_key(point["lat"], point["lon"], target_kind, edge_candidate_limit)
+                _walking_target_access_cache[cache_key] = {
+                    "expires_at": cache_expires_at,
+                    "candidates": selected_candidates,
+                }
+
+    return [result or [] for result in results]
 
 
 def _iter_walking_neighbors(
@@ -1632,22 +1848,20 @@ def _find_nearest_walking_point(
     graph = _load_walking_network_graph()
     prepared_targets: List[Tuple[Dict[str, Any], List[Dict[str, Any]]]] = []
     target_nodes = set()
-    last_runtime_error: Optional[str] = None
     connection = None
     try:
         connection = _get_db_connection()
-        for point in candidate_points:
-            try:
-                end_candidates = _get_walking_target_access_candidates(
-                    point["lat"],
-                    point["lon"],
-                    edge_candidate_limit=edge_candidate_limit,
-                    target_kind=target_kind,
-                    connection=connection,
-                )
-            except RuntimeError as exc:
-                last_runtime_error = str(exc)
-                continue
+        try:
+            candidate_access_sets = _get_walking_target_access_candidates_batch(
+                candidate_points,
+                edge_candidate_limit=edge_candidate_limit,
+                target_kind=target_kind,
+                connection=connection,
+            )
+        except RuntimeError as exc:
+            raise RuntimeError(str(exc)) from exc
+
+        for point, end_candidates in zip(candidate_points, candidate_access_sets):
             if not end_candidates:
                 continue
             prepared_targets.append((point, end_candidates))
@@ -1656,7 +1870,7 @@ def _find_nearest_walking_point(
                 target_nodes.add(end_snap["target_node"])
 
         if not prepared_targets:
-            raise RuntimeError(last_runtime_error or _no_dedicated_walking_path_message())
+            raise RuntimeError(_no_dedicated_walking_path_message())
 
         origin_search = _prepare_walking_origin_search(
             graph,
