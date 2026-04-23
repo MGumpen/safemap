@@ -31,12 +31,30 @@ cd safemap
 # host=
 # port=
 # dbname=
+# ROUTING_DRIVING_BASE_URL=https://router.project-osrm.org
+# ROUTING_DRIVING_PROFILE=driving
+# WALKING_NETWORK_TABLE=vegnett_pluss_gangnett
+# WALKING_NETWORK_CACHE_TTL_SECONDS=300
+# WALKING_MAX_SNAP_DISTANCE_METERS=1500
+# WALKING_SPEED_MPS=1.4
+# WALKING_TRAIL_SPEED_MPS=1.2
+# WALKING_TRACTOR_ROAD_SPEED_MPS=1.3
+# WALKING_STAIRS_SPEED_MPS=0.8
+# WALKING_NEAREST_HOSPITAL_POINT_LIMIT=0
+# WALKING_NEAREST_LEGEVAKT_POINT_LIMIT=24
+# WALKING_NEAREST_SHELTER_POINT_LIMIT=32
 
 # Bygg og start appen
 docker compose up --build
 ```
 
 Appen blir tilgjengelig på `http://localhost:8000`.
+
+Gangruting bygges lokalt paa `vegnett_pluss_gangnett` i databasen. For at
+`Gangvei` skal fungere maa dere derfor hente og importere `Vegnett Pluss`
+for de kommunene dere vil route i. Walking optimaliserer paa estimert gangtid,
+ikke bare meter, og bruker derfor bade ganginfrastruktur, store stier og
+forsvarlige veglenker der egen gangvei mangler.
 
 `docker compose down` stopper appen.
 
@@ -62,16 +80,38 @@ filene kan speiles inn i PostGIS for spatial SQL-analyse.
 python3 scripts/import_geojson_to_postgis.py --dataset all
 ```
 
+For a hente et gangnett kun fra `Vegnett Pluss`:
+
+```bash
+python3 scripts/fetch_vegnett_pluss_gangnett.py --kommune 4204
+```
+
+Dette skriver `src/vegnett_pluss_gangnett.geojson` med gangbare lenker som
+`fortau`, `gangfelt`, `gang- og sykkelveg`, `gangveg`, `gagate`, `sti`,
+`traktorveg`, `trapp` og forsvarlige veglenker som `enkel bilveg` der det er
+nodvendig. Turruter er ikke med.
+
 Eller i prosjektets Docker-miljo:
 
 ```bash
 docker compose exec safemap python /scripts/import_geojson_to_postgis.py --dataset all
 ```
 
+For aa importere Vegnett Pluss-gangnettet til PostGIS:
+
+```bash
+python3 scripts/import_geojson_to_postgis.py --dataset vegnett_gangnett
+```
+
+Etter import brukes tabellen `vegnett_pluss_gangnett` direkte av backend sin
+lokale `walking`-ruter for aa finne raskeste gangrute basert paa estimert
+gangtid.
+
 Dette oppretter og fyller disse tabellene:
 
 - `sykehus_points`
 - `legevakt_points`
+- `vegnett_pluss_gangnett` (ved eksplisitt import)
 
 For aa kun validere JSON-formatet uten databaseendringer:
 
@@ -126,14 +166,6 @@ GitHub Actions kjører automatisk ved push til `main` eller `dev` branch:
 
 Se [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for konfigurasjonsinstruksjoner.
 
-## Bidra
-
-Vi setter pris på bidrag til prosjektet. Les [CONTRIBUTING.md](CONTRIBUTING.md) for retningslinjer om hvordan du bidrar, inkludert:
-
-- Oppsett av utviklingsmiljø
-- Coding standards
-- Testing-krav
-- Pull request prosess
 
 ## Lisens
 

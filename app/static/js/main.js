@@ -400,8 +400,19 @@ if (logoButton) {
   });
 }
 
+const desktopHeaderControlsAnchor = document.getElementById('desktop-header-controls-anchor');
+const appHeaderControls = document.getElementById('app-header-controls');
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const mobileMenuClose = document.getElementById('mobile-menu-close');
+const mobileMenu = document.getElementById('mobile-menu');
+const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
+const mobileMenuHeaderControlsSlot = document.getElementById('mobile-menu-header-controls');
+const mobileMenuLayerControlsSlot = document.getElementById('mobile-menu-layer-controls');
+const desktopLayerControlsAnchor = document.getElementById('desktop-layer-controls-anchor');
+const layerControls = document.getElementById('layer-controls');
 const addressInput = document.getElementById('address-search');
 const addressSuggestions = document.getElementById('address-suggestions');
+const routeModeSelect = document.getElementById('route-mode');
 const addressToInput = null;
 const addressToSuggestions = null;
 const routeButton = null;
@@ -409,11 +420,13 @@ const addressLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 let addressMarker = null;
 let routeLine = null;
+let routeRequestToken = 0;
 let activeSuggestionIndex = -1;
 let activeSuggestions = [];
 let addressSearchTimer = null;
 let activeController = null;
 let fromSelection = null;
+let activeRoute = null;
 const distanceRadiusInput = document.getElementById('distance-radius');
 const distanceValueLabel = document.getElementById('distance-value');
 const applyDistanceFilterButton = document.getElementById('apply-distance-filter');
@@ -426,6 +439,8 @@ let analysisRequestToken = 0;
 let activeSelectionToken = 0;
 let analysisZonesRequestToken = 0;
 let analysisZonesRefreshTimer = null;
+const mobileMenuMediaQuery = window.matchMedia('(max-width: 768px)');
+let mobileMenuOpen = false;
 const analysisState = {
   loading: false,
   error: '',
@@ -440,12 +455,140 @@ const analysisCategoryStyles = {
   shelter: { color: '#d97706', short: 'T' }
 };
 
+const ROUTE_MODE_STORAGE_KEY = 'safemap:route-mode';
+const routeModes = {
+  driving: {
+    label: 'Bilvei',
+    lineColor: '#2563eb',
+    dashArray: null
+  },
+  walking: {
+    label: 'Gangvei',
+    lineColor: '#16a34a',
+    dashArray: '10 6'
+  },
+  air: {
+    label: 'Luftlinje',
+    lineColor: '#7c3aed',
+    dashArray: '8 8'
+  }
+};
+let currentRouteMode = 'driving';
+
+const isMobileLayout = () => mobileMenuMediaQuery.matches;
+
+const setMobileMenuOpen = (isOpen) => {
+  const nextOpen = Boolean(isOpen) && isMobileLayout();
+  mobileMenuOpen = nextOpen;
+  document.body.classList.toggle('is-mobile-menu-open', nextOpen);
+  if (mobileMenu) {
+    mobileMenu.hidden = !nextOpen;
+    mobileMenu.classList.toggle('is-open', nextOpen);
+    mobileMenu.setAttribute('aria-hidden', nextOpen ? 'false' : 'true');
+  }
+  if (mobileMenuBackdrop) {
+    mobileMenuBackdrop.hidden = !nextOpen;
+  }
+  if (mobileMenuToggle) {
+    mobileMenuToggle.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+  }
+};
+
+const closeMobileMenu = () => {
+  if (!mobileMenuOpen) return;
+  setMobileMenuOpen(false);
+};
+
+const syncResponsiveLayout = () => {
+  const mobileLayout = isMobileLayout();
+  document.body.classList.toggle('is-mobile-layout', mobileLayout);
+
+  if (
+    mobileLayout
+    && appHeaderControls
+    && mobileMenuHeaderControlsSlot
+    && appHeaderControls.parentElement !== mobileMenuHeaderControlsSlot
+  ) {
+    mobileMenuHeaderControlsSlot.appendChild(appHeaderControls);
+  }
+
+  if (
+    mobileLayout
+    && layerControls
+    && mobileMenuLayerControlsSlot
+    && layerControls.parentElement !== mobileMenuLayerControlsSlot
+  ) {
+    mobileMenuLayerControlsSlot.appendChild(layerControls);
+  }
+
+  if (
+    !mobileLayout
+    && appHeaderControls
+    && desktopHeaderControlsAnchor
+    && appHeaderControls.parentElement !== desktopHeaderControlsAnchor
+  ) {
+    desktopHeaderControlsAnchor.appendChild(appHeaderControls);
+  }
+
+  if (
+    !mobileLayout
+    && layerControls
+    && desktopLayerControlsAnchor
+    && layerControls.parentElement !== desktopLayerControlsAnchor
+  ) {
+    desktopLayerControlsAnchor.appendChild(layerControls);
+  }
+
+  if (!mobileLayout) {
+    setMobileMenuOpen(false);
+  }
+};
+
+const maybeCloseMobileMenu = () => {
+  if (isMobileLayout()) {
+    closeMobileMenu();
+  }
+};
+
 const formatRouteDistance = (distanceMeters) => {
   const km = Number(distanceMeters) / 1000;
   if (!Number.isFinite(km)) return '';
   if (km >= 100) return `${km.toFixed(0)} km`;
   if (km >= 10) return `${km.toFixed(1)} km`;
   return `${km.toFixed(2)} km`;
+};
+
+const formatRouteDuration = (durationSeconds) => {
+  const seconds = Number(durationSeconds);
+  if (!Number.isFinite(seconds) || seconds < 0) return '';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (!remainingMinutes) return `${hours} t`;
+  return `${hours} t ${remainingMinutes} min`;
+};
+
+const getRouteModeConfig = (mode = currentRouteMode) => routeModes[mode] || routeModes.driving;
+
+const getRouteModeLabel = (mode = currentRouteMode) => getRouteModeConfig(mode).label;
+
+const readStoredRouteMode = () => {
+  try {
+    const stored = window.localStorage.getItem(ROUTE_MODE_STORAGE_KEY);
+    if (stored && routeModes[stored]) return stored;
+  } catch (error) {
+    // Ignore storage failures and fall back to the default profile.
+  }
+  return 'driving';
+};
+
+const persistRouteMode = (mode) => {
+  try {
+    window.localStorage.setItem(ROUTE_MODE_STORAGE_KEY, mode);
+  } catch (error) {
+    // Ignore storage failures and keep the mode only in memory.
+  }
 };
 
 const toRadians = (value) => (value * Math.PI) / 180;
@@ -460,6 +603,158 @@ const haversineKm = (from, to) => {
     + Math.cos(fromLat) * Math.cos(toLat) * Math.sin(dLon / 2) ** 2;
   return 2 * earthRadiusKm * Math.asin(Math.sqrt(a));
 };
+
+const clearRouteLine = () => {
+  if (!routeLine) return;
+  routeLayer.removeLayer(routeLine);
+  routeLine = null;
+};
+
+const clearActiveRoute = () => {
+  routeRequestToken += 1;
+  activeRoute = null;
+  clearRouteLine();
+};
+
+const bindRouteTooltip = (line, summary) => {
+  if (!line || !summary) return;
+  line.bindTooltip(summary, {
+    permanent: true,
+    direction: 'center',
+    className: 'route-distance-tooltip',
+    opacity: 1
+  }).openTooltip();
+};
+
+const drawRouteLine = (latLngs, summary, mode = currentRouteMode) => {
+  const config = getRouteModeConfig(mode);
+  clearRouteLine();
+  routeLine = L.polyline(latLngs, {
+    color: config.lineColor,
+    weight: mode === 'air' ? 4 : 5,
+    opacity: 0.9,
+    dashArray: config.dashArray || null
+  }).addTo(routeLayer);
+  bindRouteTooltip(routeLine, summary);
+  map.fitBounds(routeLine.getBounds().pad(0.2));
+};
+
+const buildRouteSummary = (mode, distanceMeters, durationSeconds = null, estimated = false) => {
+  const distanceLabel = formatRouteDistance(distanceMeters);
+  if (!distanceLabel) return '';
+  const durationLabel = formatRouteDuration(durationSeconds);
+  const estimatedLabel = estimated ? ' • estimert tilgang' : '';
+  if (durationLabel && mode !== 'air') {
+    return `${getRouteModeLabel(mode)}: ${distanceLabel} • ${durationLabel}${estimatedLabel}`;
+  }
+  return `${getRouteModeLabel(mode)}: ${distanceLabel}${estimatedLabel}`;
+};
+
+const fetchRouteData = async (from, to, mode, targetKind = null) => {
+  const params = new URLSearchParams({
+    mode,
+    from_lat: from.lat,
+    from_lon: from.lon,
+    to_lat: to.lat,
+    to_lon: to.lon
+  });
+  if (targetKind) {
+    params.set('target_kind', targetKind);
+  }
+  const url = `/api/route?${params.toString()}`;
+  const response = await fetch(url);
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Ruteoppslag feilet');
+  }
+  return payload;
+};
+
+const renderRoutePayload = (from, to, route, mode = currentRouteMode, targetKind = null) => {
+  activeRoute = { from: { ...from }, to: { ...to }, targetKind };
+  const coordinates = route?.geometry?.coordinates;
+  if (!Array.isArray(coordinates) || coordinates.length < 2) {
+    throw new Error('Rutemotoren returnerte ugyldig geometri.');
+  }
+  const coords = coordinates.map(([lon, lat]) => [lat, lon]);
+  drawRouteLine(
+    coords,
+    buildRouteSummary(mode, route.distance_meters, route.duration_seconds, Boolean(route?.estimated)),
+    mode
+  );
+};
+
+const renderRoute = async (from, to, targetKind = null) => {
+  if (!from || !to) return;
+
+  activeRoute = { from: { ...from }, to: { ...to }, targetKind };
+  const requestToken = ++routeRequestToken;
+  const mode = currentRouteMode;
+
+  try {
+    const route = await fetchRouteData(from, to, mode, targetKind);
+    if (requestToken !== routeRequestToken || mode !== currentRouteMode) return;
+    if (!route) {
+      showMapStatusPopup(`Fant ingen ${getRouteModeLabel(mode).toLowerCase()} mellom punktene.`);
+      return;
+    }
+    renderRoutePayload(from, to, route, mode, targetKind);
+  } catch (error) {
+    if (requestToken !== routeRequestToken) return;
+    clearRouteLine();
+    const message = error instanceof Error ? error.message : `Kunne ikke vise ${getRouteModeLabel(mode).toLowerCase()}.`;
+    showMapStatusPopup(message);
+    throw error;
+  }
+};
+
+const setRouteMode = (mode) => {
+  if (!routeModes[mode]) return;
+  currentRouteMode = mode;
+  if (routeModeSelect && routeModeSelect.value !== mode) {
+    routeModeSelect.value = mode;
+  }
+  persistRouteMode(mode);
+  if (activeRoute) {
+    renderRoute(activeRoute.from, activeRoute.to, activeRoute.targetKind || null).catch((error) => {
+      console.error('Kunne ikke oppdatere rute for valgt modus', error);
+    });
+  }
+};
+
+currentRouteMode = readStoredRouteMode();
+if (routeModeSelect) {
+  routeModeSelect.value = currentRouteMode;
+  routeModeSelect.addEventListener('change', (event) => {
+    setRouteMode(event.target.value);
+  });
+}
+
+if (mobileMenuToggle) {
+  mobileMenuToggle.addEventListener('click', () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  });
+}
+
+if (mobileMenuClose) {
+  mobileMenuClose.addEventListener('click', () => {
+    closeMobileMenu();
+  });
+}
+
+if (mobileMenuBackdrop) {
+  mobileMenuBackdrop.addEventListener('click', () => {
+    closeMobileMenu();
+  });
+}
+
+if (typeof mobileMenuMediaQuery.addEventListener === 'function') {
+  mobileMenuMediaQuery.addEventListener('change', syncResponsiveLayout);
+} else if (typeof mobileMenuMediaQuery.addListener === 'function') {
+  mobileMenuMediaQuery.addListener(syncResponsiveLayout);
+}
+
+syncResponsiveLayout();
 
 const setMarkerVisibility = (marker, visible) => {
   if (!marker || typeof marker.setOpacity !== 'function') return;
@@ -1026,6 +1321,7 @@ const applyAddressSelection = (item, targetInput, targetSuggestions) => {
   const coords = extractCoordinates(item);
   if (!coords) return;
   activeSelectionToken += 1;
+  clearActiveRoute();
   const label = formatAddressLabel(item);
   if (targetInput) {
     targetInput.value = label.title;
@@ -1049,6 +1345,7 @@ const applyAddressSelection = (item, targetInput, targetSuggestions) => {
   map.setView([coords.lat, coords.lon], Math.max(map.getZoom(), 14));
   updateLocationAnalysisLabel(label);
   fetchLocationAnalysis(coords, label);
+  maybeCloseMobileMenu();
 };
 
 const renderSuggestions = (items, target, targetInput) => {
@@ -1130,39 +1427,38 @@ document.addEventListener('click', (event) => {
   clearSuggestions(addressSuggestions);
 });
 
-const fetchRoute = async (from, to) => {
-  if (!from || !to) return;
-  const url = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error('Ruteoppslag feilet');
-  const data = await response.json();
-  const route = data.routes?.[0];
-  if (!route) return;
-  const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
-  if (routeLine) routeLayer.removeLayer(routeLine);
-  routeLine = L.polyline(coords, { color: '#2563eb', weight: 5, opacity: 0.9 }).addTo(routeLayer);
-  const distanceLabel = formatRouteDistance(route.distance);
-  if (distanceLabel) {
-    routeLine.bindTooltip(distanceLabel, {
-      permanent: true,
-      direction: 'center',
-      className: 'route-distance-tooltip',
-      opacity: 1
-    }).openTooltip();
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeMobileMenu();
   }
-  map.fitBounds(routeLine.getBounds().pad(0.2));
-};
+});
 
 const routeToNearest = async (type) => {
   if (!fromSelection) return;
   const from = fromSelection.coords;
+  const mode = currentRouteMode;
   try {
-    const response = await fetch(`/api/nearest?type=${type}&lat=${from.lat}&lon=${from.lon}`);
-    if (!response.ok) throw new Error('Nearest-oppslag feilet');
-    const target = await response.json();
+    const response = await fetch(
+      `/api/nearest?type=${type}&lat=${from.lat}&lon=${from.lon}&mode=${encodeURIComponent(mode)}`
+    );
+    const target = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(target?.error || 'Nearest-oppslag feilet');
+    }
     if (!target || target.error) return;
-    fetchRoute(from, { lat: target.lat, lon: target.lon });
+    if (mode !== currentRouteMode) return;
+    const to = { lat: target.lat, lon: target.lon };
+    if (target.route && target.route.mode === mode) {
+      renderRoutePayload(from, to, target.route, mode, type);
+      maybeCloseMobileMenu();
+      return;
+    }
+    await renderRoute(from, to, type);
+    maybeCloseMobileMenu();
   } catch (error) {
+    if (error instanceof Error) {
+      showMapStatusPopup(error.message);
+    }
     console.error('Kunne ikke hente nærmeste punkt', error);
   }
 };
@@ -1198,6 +1494,7 @@ const reverseGeocode = async (lat, lon) => {
 map.on('click', async (event) => {
   const { lat, lng } = event.latlng;
   const selectionToken = ++activeSelectionToken;
+  clearActiveRoute();
   if (addressMarker) addressLayer.removeLayer(addressMarker);
   addressMarker = L.marker([lat, lng]).addTo(addressLayer);
   const fallbackLabel = {
