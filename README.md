@@ -234,10 +234,10 @@ nearest_hospital AS (
         ST_Y(h.geom) AS lat,
         ST_X(h.geom) AS lon,
         ST_Distance(h.geom::geography, o.geog_4326) AS distance_meters,
-        ST_DWithin(h.geom::geography, o.geog_4326, 150000) AS within_max_distance,
+        ST_DWithin(h.geom::geography, o.geog_4326, 80000) AS within_max_distance,
         20::integer AS max_score,
         20000::double precision AS ideal_distance_m,
-        150000::double precision AS max_distance_m
+        80000::double precision AS max_distance_m
     FROM sykehus_points h
     CROSS JOIN origin o
     ORDER BY ST_Distance(h.geom::geography, o.geog_4326)
@@ -253,10 +253,10 @@ nearest_legevakt AS (
         ST_Y(l.geom) AS lat,
         ST_X(l.geom) AS lon,
         ST_Distance(l.geom::geography, o.geog_4326) AS distance_meters,
-        ST_DWithin(l.geom::geography, o.geog_4326, 70000) AS within_max_distance,
+        ST_DWithin(l.geom::geography, o.geog_4326, 30000) AS within_max_distance,
         25::integer AS max_score,
         8000::double precision AS ideal_distance_m,
-        70000::double precision AS max_distance_m
+        30000::double precision AS max_distance_m
     FROM legevakt_points l
     CROSS JOIN origin o
     ORDER BY ST_Distance(l.geom::geography, o.geog_4326)
@@ -272,10 +272,10 @@ nearest_brannstasjon AS (
         ST_Y(ST_Transform(b."SHAPE", 4326)) AS lat,
         ST_X(ST_Transform(b."SHAPE", 4326)) AS lon,
         ST_Distance(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326) AS distance_meters,
-        ST_DWithin(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326, 20000) AS within_max_distance,
+        ST_DWithin(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326, 10000) AS within_max_distance,
         25::integer AS max_score,
         2000::double precision AS ideal_distance_m,
-        20000::double precision AS max_distance_m
+        10000::double precision AS max_distance_m
     FROM "Brannstasjoner" b
     CROSS JOIN origin o
     ORDER BY ST_Distance(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326)
