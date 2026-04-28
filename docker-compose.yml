@@ -4,7 +4,8 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - path: .env
+        required: false
     volumes:
       - ./app:/app
       - ./src:/src:ro

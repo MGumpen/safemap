@@ -25,7 +25,10 @@ Prosjektet er en del av faget IS-218 Geografiske informasjonssystemer, IT og IoT
 git clone https://github.com/MGumpen/safemap.git
 cd safemap
 
-# Lag .env-fil i prosjektroten med disse variablene:
+# Kopier .env.example og fyll inn lokale databaseverdier:
+cp .env.example .env
+
+# .env-filen skal ha disse variablene:
 # user=
 # password=
 # host=
