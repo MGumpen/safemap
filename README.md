@@ -25,27 +25,9 @@ Prosjektet er en del av faget IS-218 Geografiske informasjonssystemer, IT og IoT
 git clone https://github.com/MGumpen/safemap.git
 cd safemap
 
-# Kopier .env.example og fyll inn lokale databaseverdier:
+# Kopier .env.example og fyll inn lokale databaseverdier.
+# .env er lokal og skal ikke committes.
 cp .env.example .env
-
-# .env-filen skal ha disse variablene:
-# user=
-# password=
-# host=
-# port=
-# dbname=
-# ROUTING_DRIVING_BASE_URL=https://router.project-osrm.org
-# ROUTING_DRIVING_PROFILE=driving
-# WALKING_NETWORK_TABLE=vegnett_pluss_gangnett
-# WALKING_NETWORK_CACHE_TTL_SECONDS=300
-# WALKING_MAX_SNAP_DISTANCE_METERS=1500
-# WALKING_SPEED_MPS=1.4
-# WALKING_TRAIL_SPEED_MPS=1.2
-# WALKING_TRACTOR_ROAD_SPEED_MPS=1.3
-# WALKING_STAIRS_SPEED_MPS=0.8
-# WALKING_NEAREST_HOSPITAL_POINT_LIMIT=0
-# WALKING_NEAREST_LEGEVAKT_POINT_LIMIT=24
-# WALKING_NEAREST_SHELTER_POINT_LIMIT=32
 
 # Bygg og start appen
 docker compose up --build
@@ -53,10 +35,13 @@ docker compose up --build
 
 Appen blir tilgjengelig på `http://localhost:8000`.
 
-Gangruting bygges lokalt paa `vegnett_pluss_gangnett` i databasen. For at
-`Gangvei` skal fungere maa dere derfor hente og importere `Vegnett Pluss`
-for de kommunene dere vil route i. Walking optimaliserer paa estimert gangtid,
-ikke bare meter, og bruker derfor bade ganginfrastruktur, store stier og
+Docker Compose bygger appen inn i imaget. Kjør `docker compose up --build` på
+nytt etter kode- eller dataendringer.
+
+Gangruting bygges lokalt på `vegnett_pluss_gangnett` i databasen. For at
+`Gangvei` skal fungere må dere derfor hente og importere `Vegnett Pluss`
+for de kommunene dere vil route i. Walking optimaliserer på estimert gangtid,
+ikke bare meter, og bruker derfor både ganginfrastruktur, store stier og
 forsvarlige veglenker der egen gangvei mangler.
 
 `docker compose down` stopper appen.
@@ -67,10 +52,12 @@ forsvarlige veglenker der egen gangvei mangler.
 
 ```
 safemap/
-├── .github/          # CI/CD workflows og konfigurasjon
-├── src/              # Applikasjonskode
-├── tests/            # Tester
-├── static/           # HTML, CSS, JavaScript
+├── app/              # FastAPI-backend, HTML, CSS og JavaScript
+├── src/              # GeoJSON-data som brukes av kartet
+├── scripts/          # Import- og hentejobber for geodata
+├── .github/          # GitHub Actions workflow
+├── Dockerfile        # Containeroppsett
+├── docker-compose.yml
 └── requirements.txt  # Python-avhengigheter
 ```
 
@@ -83,7 +70,7 @@ filene kan speiles inn i PostGIS for spatial SQL-analyse.
 python3 scripts/import_geojson_to_postgis.py --dataset all
 ```
 
-For a hente et gangnett kun fra `Vegnett Pluss`:
+For å hente et gangnett kun fra `Vegnett Pluss`:
 
 ```bash
 python3 scripts/fetch_vegnett_pluss_gangnett.py --kommune 4204
@@ -92,22 +79,22 @@ python3 scripts/fetch_vegnett_pluss_gangnett.py --kommune 4204
 Dette skriver `src/vegnett_pluss_gangnett.geojson` med gangbare lenker som
 `fortau`, `gangfelt`, `gang- og sykkelveg`, `gangveg`, `gagate`, `sti`,
 `traktorveg`, `trapp` og forsvarlige veglenker som `enkel bilveg` der det er
-nodvendig. Turruter er ikke med.
+nødvendig. Turruter er ikke med.
 
-Eller i prosjektets Docker-miljo:
+Eller i prosjektets Docker-miljø:
 
 ```bash
 docker compose exec safemap python /scripts/import_geojson_to_postgis.py --dataset all
 ```
 
-For aa importere Vegnett Pluss-gangnettet til PostGIS:
+For å importere Vegnett Pluss-gangnettet til PostGIS:
 
 ```bash
 python3 scripts/import_geojson_to_postgis.py --dataset vegnett_gangnett
 ```
 
 Etter import brukes tabellen `vegnett_pluss_gangnett` direkte av backend sin
-lokale `walking`-ruter for aa finne raskeste gangrute basert paa estimert
+lokale `walking`-ruter for å finne raskeste gangrute basert på estimert
 gangtid.
 
 Dette oppretter og fyller disse tabellene:
@@ -116,14 +103,14 @@ Dette oppretter og fyller disse tabellene:
 - `legevakt_points`
 - `vegnett_pluss_gangnett` (ved eksplisitt import)
 
-For aa kun validere JSON-formatet uten databaseendringer:
+For å kun validere JSON-formatet uten databaseendringer:
 
 ```bash
 python3 scripts/import_geojson_to_postgis.py --dataset all --dry-run
 ```
 
-Denne losningen lar dere beholde JSON som del av Oppgave 1, samtidig som de samme
-punktene finnes i databasen for dynamiske PostGIS-sporringer i neste del av kartet.
+Denne løsningen lar dere beholde JSON som del av Oppgave 1, samtidig som de samme
+punktene finnes i databasen for dynamiske PostGIS-spørringer i neste del av kartet.
 
 
 
@@ -160,29 +147,13 @@ GitHub Actions kjører automatisk ved push til `main` eller `dev` branch:
 - Generering av testdekning
 - Bygging av applikasjonen
 
-### Branch Protection
-
-`main` branch er beskyttet med obligatoriske status-sjekker:
-- Alle CI-tester må bestå før merge
-- Pull requests kreves
-- Code review kreves
-
-Se [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for konfigurasjonsinstruksjoner.
-
-
 ## Lisens
 
-Dette prosjektet er lisensiert under vilkårene i [LICENSE](LICENSE)-filen.
+Det ligger ikke en separat lisensfil i repoet.
 
 ## Kontakt
 
 Prosjektet er utviklet som en del av IS-218 ved Universitetet i Agder i samarbeid med Kartverket og Norkart.
-
-## Dokumentasjon
-
-- [CI/CD Workflows](.github/workflows/README.md) - Detaljert dokumentasjon om automatisering
-- [Branch Protection](.github/BRANCH_PROTECTION.md) - Instruksjoner for branch protection
-- [Contributing](CONTRIBUTING.md) - Guide for bidragsytere
 
 ## Refleksjon
 
@@ -196,14 +167,14 @@ Prosjektet er utviklet som en del av IS-218 ved Universitetet i Agder i samarbei
 
 ### Beskrivelse av utvidelsen
 
-I Oppgave 2 har vi utvidet webkartet med romlig analyse basert paa PostGIS og databaseoppslag ved brukerinteraksjon.
+I Oppgave 2 har vi utvidet webkartet med romlig analyse basert på PostGIS og databaseoppslag ved brukerinteraksjon.
 
 Det viktigste som er lagt til er:
 
 - Brukeren kan klikke i kartet eller velge en adresse og få en dynamisk analyse av punktet.
 - Frontend sender koordinatene til backend, som kaller en SQL-funksjon i
   databasen.
-- SQL-funksjonen finner naermeste sykehus, legevakt, brannstasjon og
+- SQL-funksjonen finner nærmeste sykehus, legevakt, brannstasjon og
   tilfluktsrom ved hjelp av PostGIS.
 - Hver kategori gir en delscore basert på avstand, og alle delpoengene summeres til en total beredskapsscore på 100.
 - Kartet gir visuell feedback ved å vise klikkpunkt, fremheving av nærmeste ressurser og et eget sonelag for beredskapsscore i kartutsnittet.
@@ -237,10 +208,10 @@ nearest_hospital AS (
         ST_Y(h.geom) AS lat,
         ST_X(h.geom) AS lon,
         ST_Distance(h.geom::geography, o.geog_4326) AS distance_meters,
-        ST_DWithin(h.geom::geography, o.geog_4326, 80000) AS within_max_distance,
+        ST_DWithin(h.geom::geography, o.geog_4326, 250000) AS within_max_distance,
         20::integer AS max_score,
         20000::double precision AS ideal_distance_m,
-        80000::double precision AS max_distance_m
+        250000::double precision AS max_distance_m
     FROM sykehus_points h
     CROSS JOIN origin o
     ORDER BY ST_Distance(h.geom::geography, o.geog_4326)
@@ -256,10 +227,10 @@ nearest_legevakt AS (
         ST_Y(l.geom) AS lat,
         ST_X(l.geom) AS lon,
         ST_Distance(l.geom::geography, o.geog_4326) AS distance_meters,
-        ST_DWithin(l.geom::geography, o.geog_4326, 30000) AS within_max_distance,
+        ST_DWithin(l.geom::geography, o.geog_4326, 60000) AS within_max_distance,
         25::integer AS max_score,
         8000::double precision AS ideal_distance_m,
-        30000::double precision AS max_distance_m
+        60000::double precision AS max_distance_m
     FROM legevakt_points l
     CROSS JOIN origin o
     ORDER BY ST_Distance(l.geom::geography, o.geog_4326)
@@ -275,10 +246,10 @@ nearest_brannstasjon AS (
         ST_Y(ST_Transform(b."SHAPE", 4326)) AS lat,
         ST_X(ST_Transform(b."SHAPE", 4326)) AS lon,
         ST_Distance(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326) AS distance_meters,
-        ST_DWithin(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326, 10000) AS within_max_distance,
+        ST_DWithin(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326, 50000) AS within_max_distance,
         25::integer AS max_score,
-        2000::double precision AS ideal_distance_m,
-        10000::double precision AS max_distance_m
+        5000::double precision AS ideal_distance_m,
+        50000::double precision AS max_distance_m
     FROM "Brannstasjoner" b
     CROSS JOIN origin o
     ORDER BY ST_Distance(ST_Transform(b."SHAPE", 4326)::geography, o.geog_4326)
@@ -303,11 +274,11 @@ nearest_shelter AS (
         ST_DWithin(
             ST_Transform(ST_GeomFromText(t.wkt_geom, 25833), 4326)::geography,
             o.geog_4326,
-            5000
+            20000
         ) AS within_max_distance,
         30::integer AS max_score,
-        1000::double precision AS ideal_distance_m,
-        5000::double precision AS max_distance_m
+        2000::double precision AS ideal_distance_m,
+        20000::double precision AS max_distance_m
     FROM tilfluktsrom t
     CROSS JOIN origin o
     ORDER BY ST_Distance(
