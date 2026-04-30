@@ -184,6 +184,8 @@ Det viktigste som er lagt til er:
 Under er SQL-funksjonen som brukes for punktanalysen. Den kan lagres i Supabase
 og viser hvordan vi bruker PostGIS-funksjoner som `ST_DWithin`,
 `ST_Distance`, `ST_Transform`, `ST_MakePoint` og `ST_GeomFromText`.
+Backend bruker SQL-resultatet som analysegrunnlag, men beregner avstand og
+poeng i punktanalyse-panelet med bilrute når OSRM returnerer en gyldig rute.
 
 ```sql
 CREATE OR REPLACE FUNCTION public.analyze_location_score(

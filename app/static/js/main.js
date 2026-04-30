@@ -813,6 +813,14 @@ const formatAnalysisDistance = (distanceMeters) => {
   return `${km.toFixed(2)} km`;
 };
 
+const formatAnalysisItemDistance = (item) => {
+  const formattedDistance = formatAnalysisDistance(item?.distance_meters);
+  if (!formattedDistance) return '';
+  if (item?.distance_basis === 'driving') return `Bilvei: ${formattedDistance}`;
+  if (item?.distance_basis === 'air_fallback') return `Luftlinje: ${formattedDistance}`;
+  return formattedDistance;
+};
+
 const formatAnalysisCoordinates = (point) => {
   if (!point) return '';
   const lat = Number(point.lat);
@@ -873,13 +881,28 @@ const renderAnalysisHighlights = (data) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
     const style = analysisCategoryStyles[item.key] || { color: '#2563eb', short: '?' };
+    const routeCoordinates = Array.isArray(item?.route_geometry?.coordinates)
+      ? item.route_geometry.coordinates
+          .map((coord) => Array.isArray(coord) && coord.length >= 2
+            ? [Number(coord[1]), Number(coord[0])]
+            : null)
+          .filter((coord) => coord && Number.isFinite(coord[0]) && Number.isFinite(coord[1]))
+      : [];
 
-    L.polyline([[clickedLat, clickedLon], [lat, lon]], {
-      color: style.color,
-      weight: 2,
-      opacity: 0.8,
-      dashArray: '7 6'
-    }).addTo(analysisLayer);
+    if (routeCoordinates.length > 1) {
+      L.polyline(routeCoordinates, {
+        color: style.color,
+        weight: 3,
+        opacity: 0.82
+      }).addTo(analysisLayer);
+    } else {
+      L.polyline([[clickedLat, clickedLon], [lat, lon]], {
+        color: style.color,
+        weight: 2,
+        opacity: 0.8,
+        dashArray: '7 6'
+      }).addTo(analysisLayer);
+    }
 
     const marker = L.circleMarker([lat, lon], {
       radius: 10,
@@ -889,7 +912,7 @@ const renderAnalysisHighlights = (data) => {
       fillOpacity: 0.96
     }).addTo(analysisLayer);
 
-    marker.bindTooltip(`${item.label}: ${formatAnalysisDistance(item.distance_meters)}`, {
+    marker.bindTooltip(`${item.label}: ${formatAnalysisItemDistance(item)}`, {
       direction: 'top',
       opacity: 0.95
     });
@@ -899,7 +922,7 @@ const renderAnalysisHighlights = (data) => {
         <span style="color:#6b7280;">${escapeHtml(item.description || '')}</span>
         <div style="margin-top:8px;">
           <strong>${Number(item.score || 0)} / ${Number(item.max_score || 0)} poeng</strong><br/>
-          ${escapeHtml(formatAnalysisDistance(item.distance_meters))}
+          ${escapeHtml(formatAnalysisItemDistance(item))}
         </div>
       </div>
     `);
@@ -910,7 +933,7 @@ const renderLocationAnalysis = () => {
   if (!locationAnalysisContainer) return;
 
   if (analysisState.loading) {
-    locationAnalysisContainer.innerHTML = '<div class="analysis-panel__status">Analyserer punktet i databasen...</div>';
+    locationAnalysisContainer.innerHTML = '<div class="analysis-panel__status">Beregner punktanalyse og bilavstander...</div>';
     return;
   }
 
@@ -958,7 +981,7 @@ const renderLocationAnalysis = () => {
         </div>
         <div class="analysis-panel__item-meta">${escapeHtml(buildAnalysisStatusText(item))}</div>
         <div class="analysis-panel__item-submeta">
-          ${escapeHtml(formatAnalysisDistance(item.distance_meters))}
+          ${escapeHtml(formatAnalysisItemDistance(item))}
           ${item.description ? ` • ${escapeHtml(item.description)}` : ''}
         </div>
       </div>

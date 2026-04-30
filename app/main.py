@@ -1927,6 +1927,113 @@ def _walking_point_candidate_limit(point_type: str, total_points: int) -> int:
     return max(1, min(total_points, configured_limit))
 
 
+def _calculate_analysis_score(distance_meters: float, ideal_distance_m: float, max_distance_m: float, max_score: int) -> int:
+    if not math.isfinite(distance_meters) or not math.isfinite(ideal_distance_m) or not math.isfinite(max_distance_m):
+        return 0
+    if max_score <= 0 or max_distance_m <= ideal_distance_m:
+        return 0
+    if distance_meters <= ideal_distance_m:
+        return max_score
+    if distance_meters >= max_distance_m:
+        return 0
+    score = max_score * ((max_distance_m - distance_meters) / (max_distance_m - ideal_distance_m))
+    return max(0, min(max_score, int(math.floor(score + 0.5))))
+
+
+def _set_analysis_item_distance(
+    item: Dict[str, Any],
+    distance_meters: float,
+    distance_basis: str,
+    route: Optional[Dict[str, Any]] = None,
+    route_error: Optional[str] = None,
+) -> Dict[str, Any]:
+    updated = dict(item)
+    original_distance = updated.get("distance_meters")
+    if isinstance(original_distance, (int, float)) and math.isfinite(float(original_distance)):
+        updated.setdefault("straight_line_distance_meters", int(round(float(original_distance))))
+
+    safe_distance = max(float(distance_meters), 0.0)
+    max_score = int(updated.get("max_score") or 0)
+    ideal_distance = float(updated.get("ideal_distance_m") or 0.0)
+    max_distance = float(updated.get("max_distance_m") or 0.0)
+    score = _calculate_analysis_score(safe_distance, ideal_distance, max_distance, max_score)
+
+    updated["distance_meters"] = int(round(safe_distance))
+    updated["distance_km"] = round(safe_distance / 1000.0, 2)
+    updated["within_max_distance"] = safe_distance <= max_distance
+    updated["score"] = score
+    updated["score_ratio"] = round(score / max_score, 4) if max_score > 0 else 0
+    updated["distance_basis"] = distance_basis
+
+    if route is not None:
+        duration_seconds = route.get("duration_seconds")
+        if isinstance(duration_seconds, (int, float)) and math.isfinite(float(duration_seconds)):
+            updated["route_duration_seconds"] = round(float(duration_seconds), 2)
+        geometry = route.get("geometry")
+        if isinstance(geometry, dict):
+            updated["route_geometry"] = geometry
+        updated["route_mode"] = route.get("mode") or "driving"
+    if route_error:
+        updated["route_error"] = route_error
+
+    return updated
+
+
+def _apply_driving_distances_to_location_analysis(payload: Dict[str, Any]) -> Dict[str, Any]:
+    clicked_point = payload.get("clicked_point") or {}
+    from_lat = float(clicked_point.get("lat"))
+    from_lon = float(clicked_point.get("lon"))
+    breakdown = payload.get("breakdown")
+    if not isinstance(breakdown, list):
+        return payload
+
+    def evaluate_item(index: int, item: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
+        target_lat = float(item.get("lat"))
+        target_lon = float(item.get("lon"))
+        try:
+            route = _fetch_external_route("driving", from_lat, from_lon, target_lat, target_lon)
+            route_distance = route.get("distance_meters")
+            if not isinstance(route_distance, (int, float)) or not math.isfinite(float(route_distance)):
+                raise RuntimeError("Rutemotoren returnerte ugyldig distanse.")
+            return index, _set_analysis_item_distance(item, float(route_distance), "driving", route=route)
+        except Exception as exc:
+            current_distance = float(item.get("distance_meters") or 0.0)
+            return index, _set_analysis_item_distance(
+                item,
+                current_distance,
+                "air_fallback",
+                route_error=str(exc),
+            )
+
+    evaluated: List[Tuple[int, Dict[str, Any]]] = []
+    with ThreadPoolExecutor(max_workers=min(4, max(1, len(breakdown)))) as executor:
+        futures = []
+        for index, item in enumerate(breakdown):
+            if not isinstance(item, dict):
+                continue
+            try:
+                float(item.get("lat"))
+                float(item.get("lon"))
+            except (TypeError, ValueError):
+                evaluated.append((index, item))
+                continue
+            futures.append(executor.submit(evaluate_item, index, item))
+        for future in as_completed(futures):
+            evaluated.append(future.result())
+
+    by_index = {index: item for index, item in evaluated}
+    updated_breakdown = [by_index.get(index, item) for index, item in enumerate(breakdown)]
+    payload = dict(payload)
+    payload["breakdown"] = updated_breakdown
+    payload["score"] = sum(int(item.get("score") or 0) for item in updated_breakdown if isinstance(item, dict))
+    payload["distance_basis"] = (
+        "driving" if all(item.get("distance_basis") == "driving" for item in updated_breakdown if isinstance(item, dict))
+        else "driving_with_fallback"
+    )
+    payload["route_mode"] = "driving"
+    return payload
+
+
 def _ensure_location_analysis_function() -> None:
     global _analysis_function_ready
     if _analysis_function_ready:
@@ -2273,6 +2380,8 @@ def get_location_analysis(lat: float, lon: float):
         payload = row[0]
         if isinstance(payload, str):
             payload = json.loads(payload)
+        if isinstance(payload, dict):
+            payload = _apply_driving_distances_to_location_analysis(payload)
         return JSONResponse(content=payload)
     except Exception as exc:
         return JSONResponse(
