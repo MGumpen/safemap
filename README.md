@@ -25,18 +25,17 @@ Prosjektet er en del av faget IS-218 Geografiske informasjonssystemer, IT og IoT
 git clone https://github.com/MGumpen/safemap.git
 cd safemap
 
-# Kopier .env.example og fyll inn lokale databaseverdier.
-# .env er lokal og skal ikke committes.
-cp .env.example .env
-
 # Bygg og start appen
 docker compose up --build
 ```
 
 Appen blir tilgjengelig på `http://localhost:8000`.
 
-Docker Compose bygger appen inn i imaget. Kjør `docker compose up --build` på
-nytt etter kode- eller dataendringer.
+Docker Compose starter både appen og en lokal PostGIS-database. Databasen fylles
+automatisk fra filene i `src/`, så sensor trenger ikke egen `.env` eller tilgang
+til ekstern Supabase-database for å teste appen lokalt. Kjør
+`docker compose up --build` på nytt etter kode- eller dataendringer.
+Databasen kan inspiseres med `docker compose exec db psql -U safemap -d safemap`.
 
 Gangruting bygges lokalt på `vegnett_pluss_gangnett` i databasen. For at
 `Gangvei` skal fungere må dere derfor hente og importere `Vegnett Pluss`
@@ -45,6 +44,8 @@ ikke bare meter, og bruker derfor både ganginfrastruktur, store stier og
 forsvarlige veglenker der egen gangvei mangler.
 
 `docker compose down` stopper appen.
+`docker compose down -v` sletter den lokale Docker-databasen og bygger den opp
+på nytt ved neste start.
 
 ## Utvikling
 
@@ -101,7 +102,9 @@ Dette oppretter og fyller disse tabellene:
 
 - `sykehus_points`
 - `legevakt_points`
-- `vegnett_pluss_gangnett` (ved eksplisitt import)
+- `"Brannstasjoner"`
+- `tilfluktsrom`
+- `vegnett_pluss_gangnett`
 
 For å kun validere JSON-formatet uten databaseendringer:
 

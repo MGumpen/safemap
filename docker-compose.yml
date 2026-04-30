@@ -1,8 +1,38 @@
 services:
+  db:
+    image: postgis/postgis:16-3.4
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: safemap
+      POSTGRES_PASSWORD: safemap
+      POSTGRES_DB: safemap
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safemap -d safemap"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - safemap-db-data:/var/lib/postgresql/data
+
   safemap:
     build: .
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
-    env_file:
-      - path: .env
-        required: false
+    environment:
+      user: safemap
+      password: safemap
+      host: db
+      port: "5432"
+      dbname: safemap
+      ROUTING_DRIVING_BASE_URL: https://router.project-osrm.org
+      ROUTING_DRIVING_PROFILE: driving
+      WALKING_NETWORK_TABLE: vegnett_pluss_gangnett
+    command: >
+      sh -c "python /scripts/import_geojson_to_postgis.py --dataset all &&
+             uvicorn main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  safemap-db-data:

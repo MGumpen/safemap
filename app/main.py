@@ -1816,8 +1816,61 @@ def _get_shelter_geojson(force_refresh: bool = False) -> Dict[str, Any]:
     return fresh_geojson
 
 
+def _get_shelter_geojson_from_db() -> Dict[str, Any]:
+    connection = _get_db_connection()
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT jsonb_build_object(
+                'type',
+                'FeatureCollection',
+                'features',
+                COALESCE(
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'type',
+                            'Feature',
+                            'geometry',
+                            ST_AsGeoJSON(ST_Transform(ST_GeomFromText(wkt_geom, 25833), 4326))::jsonb,
+                            'properties',
+                            to_jsonb(t) - 'wkt_geom'
+                        )
+                    ),
+                    '[]'::jsonb
+                )
+            )
+            FROM tilfluktsrom t;
+            """
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        if not row or row[0] is None:
+            raise RuntimeError("Ingen tilfluktsromdata i lokal database.")
+        payload = row[0]
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        if not isinstance(payload, dict):
+            raise RuntimeError("Lokal database returnerte ugyldig tilfluktsrom-GeoJSON.")
+        return payload
+    finally:
+        connection.close()
+
+
+def _point_coordinates_to_wgs84(coords: List[Any]) -> Tuple[float, float]:
+    x = float(coords[0])
+    y = float(coords[1])
+    if abs(x) <= 180 and abs(y) <= 90:
+        return float(y), float(x)
+    lon, lat = _shelter_transformer.transform(x, y)
+    return float(lat), float(lon)
+
+
 def _load_shelter_points() -> List[Dict[str, Any]]:
-    data = _get_shelter_geojson()
+    try:
+        data = _get_shelter_geojson()
+    except Exception:
+        data = _get_shelter_geojson_from_db()
     points = []
     for feature in data.get("features", []):
         geometry = feature.get("geometry") or {}
@@ -1826,7 +1879,7 @@ def _load_shelter_points() -> List[Dict[str, Any]]:
         coords = geometry.get("coordinates") or []
         if len(coords) < 2:
             continue
-        lon, lat = _shelter_transformer.transform(coords[0], coords[1])
+        lat, lon = _point_coordinates_to_wgs84(coords)
         props = feature.get("properties") or {}
         points.append(
             {
@@ -2183,15 +2236,19 @@ def get_shelters(force_refresh: bool = False):
         geojson = _get_shelter_geojson(force_refresh=force_refresh)
         return JSONResponse(content=geojson)
     except Exception as exc:
-        return JSONResponse(
-            status_code=502,
-            content={
-                "error": (
-                    "Klarte ikke hente tilfluktsrom fra Nedlasting API. "
-                    f"Kontroller capabilities URL ({SHELTER_CAPABILITIES_URL}) og metadata UUID. Detaljer: {exc}"
-                )
-            },
-        )
+        try:
+            return JSONResponse(content=_get_shelter_geojson_from_db())
+        except Exception as db_exc:
+            return JSONResponse(
+                status_code=502,
+                content={
+                    "error": (
+                        "Klarte ikke hente tilfluktsrom fra Nedlasting API eller lokal database. "
+                        f"Kontroller capabilities URL ({SHELTER_CAPABILITIES_URL}) og lokal PostGIS. "
+                        f"Detaljer: API: {exc}; DB: {db_exc}"
+                    )
+                },
+            )
 
 
 @app.get("/api/nearest")
