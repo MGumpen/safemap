@@ -42,6 +42,9 @@ Gangruting bygges lokalt på `vegnett_pluss_gangnett` i databasen. For at
 for de kommunene dere vil route i. Walking optimaliserer på estimert gangtid,
 ikke bare meter, og bruker derfor både ganginfrastruktur, store stier og
 forsvarlige veglenker der egen gangvei mangler.
+Hvis startpunkt eller mål ligger utenfor importert gangnett, tegnes luftlinje
+inn til nærmeste ganglenke. Selve gangruten kobler bare sammen lenker som faktisk
+henger sammen i det importerte vegnettet.
 
 `docker compose down` stopper appen.
 `docker compose down -v` sletter den lokale Docker-databasen og bygger den opp
@@ -96,7 +99,10 @@ python3 scripts/import_geojson_to_postgis.py --dataset vegnett_gangnett
 
 Etter import brukes tabellen `vegnett_pluss_gangnett` direkte av backend sin
 lokale `walking`-ruter for å finne raskeste gangrute basert på estimert
-gangtid.
+gangtid. Hvis startpunkt eller mål ligger utenfor importert gangnett, tegnes
+luftlinje frem til nærmeste ganglenke og ruten fortsetter på gangnettet derfra.
+Appen lager ikke kunstige snarveier mellom ganglenker som ikke henger sammen i
+det importerte vegnettet.
 
 Dette oppretter og fyller disse tabellene:
 

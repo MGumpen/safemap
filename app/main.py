@@ -43,7 +43,7 @@ ROUTING_DRIVING_BASE_URL = os.getenv("ROUTING_DRIVING_BASE_URL", "https://router
 ROUTING_DRIVING_PROFILE = os.getenv("ROUTING_DRIVING_PROFILE", "driving").strip() or "driving"
 WALKING_NETWORK_TABLE = os.getenv("WALKING_NETWORK_TABLE", "vegnett_pluss_gangnett").strip() or "vegnett_pluss_gangnett"
 WALKING_NETWORK_CACHE_TTL_SECONDS = int(os.getenv("WALKING_NETWORK_CACHE_TTL_SECONDS", "300"))
-WALKING_MAX_SNAP_DISTANCE_METERS = float(os.getenv("WALKING_MAX_SNAP_DISTANCE_METERS", "1500"))
+WALKING_MAX_SNAP_DISTANCE_METERS = float(os.getenv("WALKING_MAX_SNAP_DISTANCE_METERS", "250"))
 WALKING_SPEED_MPS = float(os.getenv("WALKING_SPEED_MPS", "1.4"))
 WALKING_CONNECTOR_SPEED_MPS = float(os.getenv("WALKING_CONNECTOR_SPEED_MPS", "1.4"))
 WALKING_TRAIL_SPEED_MPS = float(os.getenv("WALKING_TRAIL_SPEED_MPS", "1.2"))
@@ -63,6 +63,8 @@ WALKING_SHELTER_ACCESS_MARGIN_METERS = float(os.getenv("WALKING_SHELTER_ACCESS_M
 WALKING_NEAREST_HOSPITAL_POINT_LIMIT = int(os.getenv("WALKING_NEAREST_HOSPITAL_POINT_LIMIT", "0"))
 WALKING_NEAREST_LEGEVAKT_POINT_LIMIT = int(os.getenv("WALKING_NEAREST_LEGEVAKT_POINT_LIMIT", "24"))
 WALKING_NEAREST_SHELTER_POINT_LIMIT = int(os.getenv("WALKING_NEAREST_SHELTER_POINT_LIMIT", "32"))
+ANALYSIS_DRIVING_CANDIDATE_LIMIT = int(os.getenv("ANALYSIS_DRIVING_CANDIDATE_LIMIT", "24"))
+ANALYSIS_DRIVING_SHELTER_CANDIDATE_LIMIT = int(os.getenv("ANALYSIS_DRIVING_SHELTER_CANDIDATE_LIMIT", "48"))
 
 DEDICATED_WALKING_TYPE_VALUES = {
     "Fortau",
@@ -1356,6 +1358,7 @@ def _prepare_walking_origin_search(
 ) -> Dict[str, Any]:
     extra_adjacency: Dict[str, List[Tuple[str, float, float, str, bool]]] = {}
     temp_edge_coords: Dict[str, List[List[float]]] = {}
+    temp_edge_connector_segments: Dict[str, List[List[List[float]]]] = {}
     start_node = "__walk_start__"
     start_point = [[from_lon, from_lat]]
     start_candidates = _fetch_nearest_walking_edges(
@@ -1374,11 +1377,14 @@ def _prepare_walking_origin_search(
         start_suffix_length = start_snap["total_length_meters"] - start_prefix_length
         start_prefix_seconds = _walking_time_seconds(start_prefix_length, start_snap["travel_speed_mps"])
         start_suffix_seconds = _walking_time_seconds(start_suffix_length, start_snap["travel_speed_mps"])
+        start_connector_segment = _merge_coord_segments(start_point, [start_snap_coord])
+        start_connector_segments = [start_connector_segment] if start_snap.get("is_off_network_connector") else []
 
+        source_edge_id = f"temp:start:{index}:source"
         _build_temp_edge(
             extra_adjacency,
             temp_edge_coords,
-            f"temp:start:{index}:source",
+            source_edge_id,
             start_node,
             start_snap["source_node"],
             start_connector_meters + start_prefix_length,
@@ -1389,10 +1395,14 @@ def _prepare_walking_origin_search(
                 _reverse_coords(start_snap["prefix_coords"]),
             ),
         )
+        if start_connector_segments:
+            temp_edge_connector_segments[source_edge_id] = start_connector_segments
+
+        target_edge_id = f"temp:start:{index}:target"
         _build_temp_edge(
             extra_adjacency,
             temp_edge_coords,
-            f"temp:start:{index}:target",
+            target_edge_id,
             start_node,
             start_snap["target_node"],
             start_connector_meters + start_suffix_length,
@@ -1403,12 +1413,15 @@ def _prepare_walking_origin_search(
                 start_snap["suffix_coords"],
             ),
         )
+        if start_connector_segments:
+            temp_edge_connector_segments[target_edge_id] = start_connector_segments
         enriched_start_candidates.append(
             {
                 **start_snap,
                 "snap_coord": start_snap_coord,
                 "start_connector_meters": start_connector_meters,
                 "start_connector_seconds": start_connector_seconds,
+                "start_connector_segment": start_connector_segment,
             }
         )
 
@@ -1426,6 +1439,7 @@ def _prepare_walking_origin_search(
         "start_candidates": enriched_start_candidates,
         "extra_adjacency": extra_adjacency,
         "temp_edge_coords": temp_edge_coords,
+        "temp_edge_connector_segments": temp_edge_connector_segments,
         "distances": distances,
         "route_lengths": route_lengths,
         "previous": previous,
@@ -1449,8 +1463,31 @@ def _get_walking_path_to_node(
     return path_cache[node_id]
 
 
+def _get_walking_connector_segments_to_node(
+    origin_search: Dict[str, Any],
+    node_id: str,
+) -> List[List[List[float]]]:
+    connector_segments_by_edge = origin_search.get("temp_edge_connector_segments") or {}
+    previous = origin_search["previous"]
+    segments: List[List[List[float]]] = []
+    current = node_id
+    while current in previous:
+        previous_node, edge_id, is_forward = previous[current]
+        edge_connector_segments = connector_segments_by_edge.get(edge_id) or []
+        for segment in edge_connector_segments:
+            segments.append(segment if is_forward else _reverse_coords(segment))
+        current = previous_node
+    segments.reverse()
+    return segments
+
+
 def _build_walking_route_payload(route_option: Dict[str, Any]) -> Dict[str, Any]:
-    return {
+    connector_segments = [
+        segment
+        for segment in route_option.get("connector_segments", [])
+        if isinstance(segment, list) and len(segment) >= 2
+    ]
+    payload = {
         "mode": "walking",
         "label": "Gangvei",
         "distance_meters": round(float(route_option["distance_meters"]), 2),
@@ -1461,6 +1498,17 @@ def _build_walking_route_payload(route_option: Dict[str, Any]) -> Dict[str, Any]
         },
         "provider_profile": f"local:{WALKING_NETWORK_TABLE}",
     }
+    if connector_segments:
+        payload["has_air_connectors"] = True
+        payload["estimated"] = True
+        payload["connector_segments"] = [
+            {
+                "type": "LineString",
+                "coordinates": segment,
+            }
+            for segment in connector_segments
+        ]
+    return payload
 
 
 def _select_best_walking_route_option(
@@ -1475,7 +1523,12 @@ def _select_best_walking_route_option(
     travel_times = origin_search["distances"]
     route_lengths = origin_search["route_lengths"]
 
-    def register_option(duration_seconds: float, distance_meters: float, coordinates: List[List[float]]) -> None:
+    def register_option(
+        duration_seconds: float,
+        distance_meters: float,
+        coordinates: List[List[float]],
+        connector_segments: Optional[List[List[List[float]]]] = None,
+    ) -> None:
         nonlocal best_option
         if (
             not math.isfinite(duration_seconds)
@@ -1495,12 +1548,15 @@ def _select_best_walking_route_option(
                 "duration_seconds": float(duration_seconds),
                 "distance_meters": float(distance_meters),
                 "coordinates": coordinates,
+                "connector_segments": connector_segments or [],
             }
 
     for end_snap in end_candidates:
         end_snap_coord = end_snap["snap_coords"][-1]
         end_connector_meters = _haversine(to_lat, to_lon, end_snap_coord[1], end_snap_coord[0]) * 1000
         end_connector_seconds = _walking_time_seconds(end_connector_meters, WALKING_CONNECTOR_SPEED_MPS)
+        end_connector_segment = _merge_coord_segments([end_snap_coord], end_point)
+        end_connector_segments = [end_connector_segment] if end_snap.get("is_off_network_connector") else []
         end_prefix_length = end_snap["locate_ratio"] * end_snap["total_length_meters"]
         end_suffix_length = end_snap["total_length_meters"] - end_prefix_length
         end_prefix_seconds = _walking_time_seconds(end_prefix_length, end_snap["travel_speed_mps"])
@@ -1518,6 +1574,10 @@ def _select_best_walking_route_option(
                     [end_snap_coord],
                     end_point,
                 ),
+                [
+                    *_get_walking_connector_segments_to_node(origin_search, end_snap["source_node"]),
+                    *end_connector_segments,
+                ],
             )
 
         time_to_target = travel_times.get(end_snap["target_node"])
@@ -1532,6 +1592,10 @@ def _select_best_walking_route_option(
                     [end_snap_coord],
                     end_point,
                 ),
+                [
+                    *_get_walking_connector_segments_to_node(origin_search, end_snap["target_node"]),
+                    *end_connector_segments,
+                ],
             )
 
         for start_snap in origin_search["start_candidates"]:
@@ -1543,6 +1607,11 @@ def _select_best_walking_route_option(
                 start_snap["locate_ratio"],
                 end_snap["locate_ratio"],
             )
+            start_connector_segments = (
+                [start_snap["start_connector_segment"]]
+                if start_snap.get("is_off_network_connector")
+                else []
+            )
             register_option(
                 start_snap["start_connector_seconds"]
                 + _walking_time_seconds(direct_edge_length, start_snap["travel_speed_mps"])
@@ -1553,6 +1622,7 @@ def _select_best_walking_route_option(
                     same_edge_coords,
                     end_point,
                 ),
+                [*start_connector_segments, *end_connector_segments],
             )
 
     return best_option
@@ -1655,11 +1725,21 @@ def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
         if len(coords) < 2:
             continue
         props = feature.get("properties") or {}
+        name = props.get("navn") or props.get("name") or props.get("brannstasjon") or props.get("adresse") or "Punkt"
+        description = (
+            props.get("adresse")
+            or props.get("poststed")
+            or props.get("kommune")
+            or props.get("brannvesen")
+            or props.get("objtype")
+        )
         points.append(
             {
                 "lat": float(coords[1]),
                 "lon": float(coords[0]),
-                "label": props.get("navn") or props.get("adresse") or "Punkt",
+                "label": name,
+                "name": name,
+                "description": description,
             }
         )
 
@@ -1670,6 +1750,16 @@ def _load_geojson_points(file_path: Path) -> List[Dict[str, Any]]:
         }
 
     return points
+
+
+def _load_fire_station_points() -> List[Dict[str, Any]]:
+    return [
+        {
+            **point,
+            "label": point.get("name") or point.get("label") or "Brannstasjon",
+        }
+        for point in _load_geojson_points(_find_data_file("brannstasjoner.geojson"))
+    ]
 
 
 def _http_json_request(url: str, method: str = "GET", payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1881,11 +1971,16 @@ def _load_shelter_points() -> List[Dict[str, Any]]:
             continue
         lat, lon = _point_coordinates_to_wgs84(coords)
         props = feature.get("properties") or {}
+        description = None
+        if props.get("plasser") is not None:
+            description = f"{props.get('plasser')} plasser"
         points.append(
             {
                 "lat": float(lat),
                 "lon": float(lon),
                 "label": props.get("adresse") or "Tilfluktsrom",
+                "name": props.get("adresse") or "Tilfluktsrom",
+                "description": description,
             }
         )
     return points
@@ -1923,7 +2018,10 @@ def _find_nearest_walking_point(
                 target_nodes.add(end_snap["target_node"])
 
         if not prepared_targets:
-            raise RuntimeError(_no_dedicated_walking_path_message())
+            raise RuntimeError(
+                "Ingen aktuelle mål ligger nær nok det importerte gangnettet. "
+                "Importer mer Vegnett Pluss-data for området, eller velg bilvei/luftlinje."
+            )
 
         origin_search = _prepare_walking_origin_search(
             graph,
@@ -2022,9 +2120,6 @@ def _set_analysis_item_distance(
         duration_seconds = route.get("duration_seconds")
         if isinstance(duration_seconds, (int, float)) and math.isfinite(float(duration_seconds)):
             updated["route_duration_seconds"] = round(float(duration_seconds), 2)
-        geometry = route.get("geometry")
-        if isinstance(geometry, dict):
-            updated["route_geometry"] = geometry
         updated["route_mode"] = route.get("mode") or "driving"
     if route_error:
         updated["route_error"] = route_error
@@ -2032,58 +2127,223 @@ def _set_analysis_item_distance(
     return updated
 
 
-def _apply_driving_distances_to_location_analysis(payload: Dict[str, Any]) -> Dict[str, Any]:
+ANALYSIS_TARGET_SETTINGS: Dict[str, Dict[str, Any]] = {
+    "hospital": {
+        "sort_order": 1,
+        "label": "Sykehus",
+        "fallback_name": "Sykehus",
+        "max_score": 20,
+        "ideal_distance_m": 20000,
+        "max_distance_m": 250000,
+    },
+    "legevakt": {
+        "sort_order": 2,
+        "label": "Legevakt",
+        "fallback_name": "Legevakt",
+        "max_score": 25,
+        "ideal_distance_m": 8000,
+        "max_distance_m": 60000,
+    },
+    "fire_station": {
+        "sort_order": 3,
+        "label": "Brannstasjon",
+        "fallback_name": "Brannstasjon",
+        "max_score": 25,
+        "ideal_distance_m": 5000,
+        "max_distance_m": 50000,
+    },
+    "shelter": {
+        "sort_order": 4,
+        "label": "Tilfluktsrom",
+        "fallback_name": "Tilfluktsrom",
+        "max_score": 30,
+        "ideal_distance_m": 2000,
+        "max_distance_m": 20000,
+    },
+}
+
+
+def _analysis_points_for_key(key: str) -> List[Dict[str, Any]]:
+    if key == "hospital":
+        return _load_geojson_points(_find_data_file("sykehus.json"))
+    if key == "legevakt":
+        return _load_geojson_points(_find_data_file("legevakter.json"))
+    if key == "fire_station":
+        return _load_fire_station_points()
+    if key == "shelter":
+        return _load_shelter_points()
+    return []
+
+
+def _analysis_item_from_point(
+    key: str,
+    point: Dict[str, Any],
+    straight_line_distance_meters: float,
+) -> Dict[str, Any]:
+    settings = ANALYSIS_TARGET_SETTINGS[key]
+    max_score = int(settings["max_score"])
+    ideal_distance = float(settings["ideal_distance_m"])
+    max_distance = float(settings["max_distance_m"])
+    score = _calculate_analysis_score(straight_line_distance_meters, ideal_distance, max_distance, max_score)
+    return {
+        "sort_order": settings["sort_order"],
+        "key": key,
+        "label": settings["label"],
+        "name": point.get("name") or point.get("label") or settings["fallback_name"],
+        "description": point.get("description") or settings["fallback_name"],
+        "lat": float(point["lat"]),
+        "lon": float(point["lon"]),
+        "distance_meters": int(round(float(straight_line_distance_meters))),
+        "distance_km": round(float(straight_line_distance_meters) / 1000.0, 2),
+        "straight_line_distance_meters": int(round(float(straight_line_distance_meters))),
+        "within_max_distance": float(straight_line_distance_meters) <= max_distance,
+        "score": score,
+        "score_ratio": round(score / max_score, 4) if max_score > 0 else 0,
+        "max_score": max_score,
+        "ideal_distance_m": int(ideal_distance),
+        "max_distance_m": int(max_distance),
+        "distance_basis": "air",
+    }
+
+
+def _analysis_candidate_items(key: str, from_lat: float, from_lon: float) -> List[Dict[str, Any]]:
+    items: List[Dict[str, Any]] = []
+    for point in _analysis_points_for_key(key):
+        try:
+            target_lat = float(point["lat"])
+            target_lon = float(point["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        distance_meters = _haversine(from_lat, from_lon, target_lat, target_lon) * 1000
+        items.append(_analysis_item_from_point(key, point, distance_meters))
+    return sorted(items, key=lambda item: float(item.get("straight_line_distance_meters") or item.get("distance_meters") or 0.0))
+
+
+def _driving_analysis_candidate_limit(key: str, total: int) -> int:
+    if key == "shelter":
+        return max(1, min(total, ANALYSIS_DRIVING_SHELTER_CANDIDATE_LIMIT))
+    if key == "hospital":
+        return max(1, min(total, max(ANALYSIS_DRIVING_CANDIDATE_LIMIT, 41)))
+    return max(1, min(total, ANALYSIS_DRIVING_CANDIDATE_LIMIT))
+
+
+def _select_analysis_item_by_air(key: str, from_lat: float, from_lon: float) -> Dict[str, Any]:
+    candidates = _analysis_candidate_items(key, from_lat, from_lon)
+    if not candidates:
+        raise RuntimeError(f"Fant ingen kandidater for {ANALYSIS_TARGET_SETTINGS[key]['label']}.")
+    return candidates[0]
+
+
+def _select_analysis_item_by_driving(key: str, from_lat: float, from_lon: float) -> Dict[str, Any]:
+    candidates = _analysis_candidate_items(key, from_lat, from_lon)
+    if not candidates:
+        raise RuntimeError(f"Fant ingen kandidater for {ANALYSIS_TARGET_SETTINGS[key]['label']}.")
+    route_candidates = candidates[: _driving_analysis_candidate_limit(key, len(candidates))]
+
+    def evaluate_candidate(item: Dict[str, Any]) -> Dict[str, Any]:
+        route = _fetch_external_route("driving", from_lat, from_lon, float(item["lat"]), float(item["lon"]))
+        route_distance = route.get("distance_meters")
+        if not isinstance(route_distance, (int, float)) or not math.isfinite(float(route_distance)):
+            raise RuntimeError("Rutemotoren returnerte ugyldig distanse.")
+        return _set_analysis_item_distance(item, float(route_distance), "driving", route=route)
+
+    best_item: Optional[Dict[str, Any]] = None
+    errors: List[str] = []
+    with ThreadPoolExecutor(max_workers=min(8, len(route_candidates))) as executor:
+        futures = [executor.submit(evaluate_candidate, item) for item in route_candidates]
+        for future in as_completed(futures):
+            try:
+                item = future.result()
+            except Exception as exc:
+                errors.append(str(exc))
+                continue
+            if best_item is None or float(item["distance_meters"]) < float(best_item["distance_meters"]):
+                best_item = item
+
+    if best_item is not None:
+        return best_item
+
+    fallback = candidates[0]
+    return _set_analysis_item_distance(
+        fallback,
+        float(fallback.get("straight_line_distance_meters") or fallback.get("distance_meters") or 0.0),
+        "air_fallback",
+        route_error="; ".join(errors[:3]) if errors else "Fant ingen bilrute til kandidatene.",
+    )
+
+
+def _select_analysis_item_by_walking(key: str, from_lat: float, from_lon: float) -> Dict[str, Any]:
+    candidates = _analysis_candidate_items(key, from_lat, from_lon)
+    if not candidates:
+        raise RuntimeError(f"Fant ingen kandidater for {ANALYSIS_TARGET_SETTINGS[key]['label']}.")
+    candidate_points = [
+        {
+            "lat": float(item["lat"]),
+            "lon": float(item["lon"]),
+            "label": item.get("name") or item.get("label"),
+            "name": item.get("name"),
+            "description": item.get("description"),
+        }
+        for item in candidates
+    ]
+    target_kind = key if key in {"hospital", "legevakt", "shelter"} else None
+    edge_candidate_limit = WALKING_SHELTER_EDGE_CANDIDATE_LIMIT if key == "shelter" else WALKING_EDGE_CANDIDATE_LIMIT
+    try:
+        best_point = _find_nearest_walking_point(
+            from_lat,
+            from_lon,
+            candidate_points,
+            edge_candidate_limit=edge_candidate_limit,
+            target_kind=target_kind,
+        )
+        route = best_point.get("route")
+        if not isinstance(route, dict):
+            raise RuntimeError("Walking-rutemotoren returnerte ingen rute.")
+        straight_distance = _haversine(from_lat, from_lon, float(best_point["lat"]), float(best_point["lon"])) * 1000
+        item = _analysis_item_from_point(key, best_point, straight_distance)
+        return _set_analysis_item_distance(item, float(route["distance_meters"]), "walking", route=route)
+    except Exception as exc:
+        fallback = candidates[0]
+        return _set_analysis_item_distance(
+            fallback,
+            float(fallback.get("straight_line_distance_meters") or fallback.get("distance_meters") or 0.0),
+            "air_fallback",
+            route_error=str(exc),
+        )
+
+
+def _apply_routed_distances_to_location_analysis(payload: Dict[str, Any], mode: str = "driving") -> Dict[str, Any]:
     clicked_point = payload.get("clicked_point") or {}
     from_lat = float(clicked_point.get("lat"))
     from_lon = float(clicked_point.get("lon"))
-    breakdown = payload.get("breakdown")
-    if not isinstance(breakdown, list):
-        return payload
+    route_mode = mode if mode in {"air", "driving", "walking"} else "driving"
 
-    def evaluate_item(index: int, item: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-        target_lat = float(item.get("lat"))
-        target_lon = float(item.get("lon"))
-        try:
-            route = _fetch_external_route("driving", from_lat, from_lon, target_lat, target_lon)
-            route_distance = route.get("distance_meters")
-            if not isinstance(route_distance, (int, float)) or not math.isfinite(float(route_distance)):
-                raise RuntimeError("Rutemotoren returnerte ugyldig distanse.")
-            return index, _set_analysis_item_distance(item, float(route_distance), "driving", route=route)
-        except Exception as exc:
-            current_distance = float(item.get("distance_meters") or 0.0)
-            return index, _set_analysis_item_distance(
-                item,
-                current_distance,
-                "air_fallback",
-                route_error=str(exc),
-            )
+    def evaluate_key(key: str) -> Tuple[int, Dict[str, Any]]:
+        settings = ANALYSIS_TARGET_SETTINGS[key]
+        if route_mode == "air":
+            item = _select_analysis_item_by_air(key, from_lat, from_lon)
+        elif route_mode == "walking":
+            item = _select_analysis_item_by_walking(key, from_lat, from_lon)
+        else:
+            item = _select_analysis_item_by_driving(key, from_lat, from_lon)
+        return int(settings["sort_order"]), item
 
     evaluated: List[Tuple[int, Dict[str, Any]]] = []
-    with ThreadPoolExecutor(max_workers=min(4, max(1, len(breakdown)))) as executor:
-        futures = []
-        for index, item in enumerate(breakdown):
-            if not isinstance(item, dict):
-                continue
-            try:
-                float(item.get("lat"))
-                float(item.get("lon"))
-            except (TypeError, ValueError):
-                evaluated.append((index, item))
-                continue
-            futures.append(executor.submit(evaluate_item, index, item))
+    with ThreadPoolExecutor(max_workers=min(4, len(ANALYSIS_TARGET_SETTINGS))) as executor:
+        futures = [executor.submit(evaluate_key, key) for key in ANALYSIS_TARGET_SETTINGS]
         for future in as_completed(futures):
             evaluated.append(future.result())
 
-    by_index = {index: item for index, item in evaluated}
-    updated_breakdown = [by_index.get(index, item) for index, item in enumerate(breakdown)]
+    updated_breakdown = [
+        item
+        for _, item in sorted(evaluated, key=lambda pair: pair[0])
+        if isinstance(item, dict)
+    ]
     payload = dict(payload)
     payload["breakdown"] = updated_breakdown
     payload["score"] = sum(int(item.get("score") or 0) for item in updated_breakdown if isinstance(item, dict))
-    payload["distance_basis"] = (
-        "driving" if all(item.get("distance_basis") == "driving" for item in updated_breakdown if isinstance(item, dict))
-        else "driving_with_fallback"
-    )
-    payload["route_mode"] = "driving"
+    payload["distance_basis"] = route_mode
+    payload["route_mode"] = route_mode
     return payload
 
 
@@ -2418,7 +2678,7 @@ def get_route(
 
 
 @app.get("/api/location-analysis")
-def get_location_analysis(lat: float, lon: float):
+def get_location_analysis(lat: float, lon: float, mode: str = "driving"):
     connection = None
     cursor = None
 
@@ -2438,7 +2698,7 @@ def get_location_analysis(lat: float, lon: float):
         if isinstance(payload, str):
             payload = json.loads(payload)
         if isinstance(payload, dict):
-            payload = _apply_driving_distances_to_location_analysis(payload)
+            payload = _apply_routed_distances_to_location_analysis(payload, mode)
         return JSONResponse(content=payload)
     except Exception as exc:
         return JSONResponse(

@@ -626,28 +626,60 @@ const bindRouteTooltip = (line, summary) => {
   }).openTooltip();
 };
 
-const drawRouteLine = (latLngs, summary, mode = currentRouteMode) => {
+const drawRouteLine = (latLngs, summary, mode = currentRouteMode, connectorSegments = []) => {
   const config = getRouteModeConfig(mode);
   clearRouteLine();
-  routeLine = L.polyline(latLngs, {
+  routeLine = L.featureGroup().addTo(routeLayer);
+
+  const mainLine = L.polyline(latLngs, {
     color: config.lineColor,
     weight: mode === 'air' ? 4 : 5,
     opacity: 0.9,
     dashArray: config.dashArray || null
-  }).addTo(routeLayer);
-  bindRouteTooltip(routeLine, summary);
-  map.fitBounds(routeLine.getBounds().pad(0.2));
+  }).addTo(routeLine);
+
+  (Array.isArray(connectorSegments) ? connectorSegments : []).forEach((segment) => {
+    if (!Array.isArray(segment) || segment.length < 2) return;
+    L.polyline(segment, {
+      color: '#ffffff',
+      weight: 9,
+      opacity: 0.9,
+      dashArray: '8 8',
+      interactive: false
+    }).addTo(routeLine);
+    L.polyline(segment, {
+      color: routeModes.air.lineColor,
+      weight: 5,
+      opacity: 0.95,
+      dashArray: '8 8'
+    }).addTo(routeLine);
+  });
+
+  bindRouteTooltip(mainLine, summary);
+  const bounds = routeLine.getBounds();
+  if (bounds.isValid()) {
+    map.fitBounds(bounds.pad(0.2));
+  }
 };
 
-const buildRouteSummary = (mode, distanceMeters, durationSeconds = null, estimated = false) => {
+const buildRouteSummary = (
+  mode,
+  distanceMeters,
+  durationSeconds = null,
+  estimated = false,
+  hasAirConnectors = false
+) => {
   const distanceLabel = formatRouteDistance(distanceMeters);
   if (!distanceLabel) return '';
   const durationLabel = formatRouteDuration(durationSeconds);
-  const estimatedLabel = estimated ? ' • estimert tilgang' : '';
+  const routeLabel = hasAirConnectors && mode === 'walking' ? 'Gangvei + luftlinje' : getRouteModeLabel(mode);
+  const estimatedLabel = hasAirConnectors && mode === 'walking'
+    ? ' • luftlinje til gangnett'
+    : (estimated ? ' • estimert tilgang' : '');
   if (durationLabel && mode !== 'air') {
-    return `${getRouteModeLabel(mode)}: ${distanceLabel} • ${durationLabel}${estimatedLabel}`;
+    return `${routeLabel}: ${distanceLabel} • ${durationLabel}${estimatedLabel}`;
   }
-  return `${getRouteModeLabel(mode)}: ${distanceLabel}${estimatedLabel}`;
+  return `${routeLabel}: ${distanceLabel}${estimatedLabel}`;
 };
 
 const fetchRouteData = async (from, to, mode, targetKind = null) => {
@@ -677,10 +709,24 @@ const renderRoutePayload = (from, to, route, mode = currentRouteMode, targetKind
     throw new Error('Rutemotoren returnerte ugyldig geometri.');
   }
   const coords = coordinates.map(([lon, lat]) => [lat, lon]);
+  const connectorSegments = (Array.isArray(route?.connector_segments) ? route.connector_segments : [])
+    .map((segment) => {
+      const segmentCoordinates = Array.isArray(segment?.coordinates) ? segment.coordinates : segment;
+      if (!Array.isArray(segmentCoordinates) || segmentCoordinates.length < 2) return null;
+      return segmentCoordinates.map(([lon, lat]) => [lat, lon]);
+    })
+    .filter(Boolean);
   drawRouteLine(
     coords,
-    buildRouteSummary(mode, route.distance_meters, route.duration_seconds, Boolean(route?.estimated)),
-    mode
+    buildRouteSummary(
+      mode,
+      route.distance_meters,
+      route.duration_seconds,
+      Boolean(route?.estimated),
+      Boolean(route?.has_air_connectors || connectorSegments.length)
+    ),
+    mode,
+    connectorSegments
   );
 };
 
@@ -718,6 +764,11 @@ const setRouteMode = (mode) => {
   if (activeRoute) {
     renderRoute(activeRoute.from, activeRoute.to, activeRoute.targetKind || null).catch((error) => {
       console.error('Kunne ikke oppdatere rute for valgt modus', error);
+    });
+  }
+  if (fromSelection) {
+    fetchLocationAnalysis(fromSelection.coords, fromSelection.label).catch((error) => {
+      console.error('Kunne ikke oppdatere punktanalyse for valgt modus', error);
     });
   }
 };
@@ -817,6 +868,8 @@ const formatAnalysisItemDistance = (item) => {
   const formattedDistance = formatAnalysisDistance(item?.distance_meters);
   if (!formattedDistance) return '';
   if (item?.distance_basis === 'driving') return `Bilvei: ${formattedDistance}`;
+  if (item?.distance_basis === 'walking') return `Gangvei: ${formattedDistance}`;
+  if (item?.distance_basis === 'air') return `Luftlinje: ${formattedDistance}`;
   if (item?.distance_basis === 'air_fallback') return `Luftlinje: ${formattedDistance}`;
   return formattedDistance;
 };
@@ -859,81 +912,13 @@ const clearAnalysisHighlights = () => {
 
 const renderAnalysisHighlights = (data) => {
   clearAnalysisHighlights();
-  const clickedPoint = data?.clicked_point;
-  const breakdown = Array.isArray(data?.breakdown) ? data.breakdown : [];
-  if (!clickedPoint || !breakdown.length) return;
-
-  const clickedLat = Number(clickedPoint.lat);
-  const clickedLon = Number(clickedPoint.lon);
-  if (!Number.isFinite(clickedLat) || !Number.isFinite(clickedLon)) return;
-
-  L.circle([clickedLat, clickedLon], {
-    radius: 150,
-    color: '#0f172a',
-    weight: 2,
-    opacity: 0.8,
-    fillOpacity: 0
-  }).addTo(analysisLayer);
-
-  breakdown.forEach((item) => {
-    const lat = Number(item?.lat);
-    const lon = Number(item?.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-
-    const style = analysisCategoryStyles[item.key] || { color: '#2563eb', short: '?' };
-    const routeCoordinates = Array.isArray(item?.route_geometry?.coordinates)
-      ? item.route_geometry.coordinates
-          .map((coord) => Array.isArray(coord) && coord.length >= 2
-            ? [Number(coord[1]), Number(coord[0])]
-            : null)
-          .filter((coord) => coord && Number.isFinite(coord[0]) && Number.isFinite(coord[1]))
-      : [];
-
-    if (routeCoordinates.length > 1) {
-      L.polyline(routeCoordinates, {
-        color: style.color,
-        weight: 3,
-        opacity: 0.82
-      }).addTo(analysisLayer);
-    } else {
-      L.polyline([[clickedLat, clickedLon], [lat, lon]], {
-        color: style.color,
-        weight: 2,
-        opacity: 0.8,
-        dashArray: '7 6'
-      }).addTo(analysisLayer);
-    }
-
-    const marker = L.circleMarker([lat, lon], {
-      radius: 10,
-      color: style.color,
-      weight: 3,
-      fillColor: '#ffffff',
-      fillOpacity: 0.96
-    }).addTo(analysisLayer);
-
-    marker.bindTooltip(`${item.label}: ${formatAnalysisItemDistance(item)}`, {
-      direction: 'top',
-      opacity: 0.95
-    });
-    marker.bindPopup(`
-      <div style="min-width: 190px;">
-        <strong>${escapeHtml(item.name || item.label || 'Treff')}</strong><br/>
-        <span style="color:#6b7280;">${escapeHtml(item.description || '')}</span>
-        <div style="margin-top:8px;">
-          <strong>${Number(item.score || 0)} / ${Number(item.max_score || 0)} poeng</strong><br/>
-          ${escapeHtml(formatAnalysisItemDistance(item))}
-        </div>
-      </div>
-    `);
-  });
 };
 
 const renderLocationAnalysis = () => {
   if (!locationAnalysisContainer) return;
 
   if (analysisState.loading) {
-    locationAnalysisContainer.innerHTML = '<div class="analysis-panel__status">Beregner punktanalyse og bilavstander...</div>';
+    locationAnalysisContainer.innerHTML = '<div class="analysis-panel__status">Beregner punkt</div>';
     return;
   }
 
@@ -1028,7 +1013,12 @@ const fetchLocationAnalysis = async (coords, label = null) => {
   clearAnalysisHighlights();
 
   try {
-    const response = await fetch(`/api/location-analysis?lat=${coords.lat}&lon=${coords.lon}`);
+    const params = new URLSearchParams({
+      lat: coords.lat,
+      lon: coords.lon,
+      mode: currentRouteMode
+    });
+    const response = await fetch(`/api/location-analysis?${params.toString()}`);
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
       throw new Error(payload?.error || 'Analyseoppslag feilet.');
@@ -1345,6 +1335,7 @@ const applyAddressSelection = (item, targetInput, targetSuggestions) => {
   if (!coords) return;
   activeSelectionToken += 1;
   clearActiveRoute();
+  clearAnalysisHighlights();
   const label = formatAddressLabel(item);
   if (targetInput) {
     targetInput.value = label.title;
@@ -1518,6 +1509,7 @@ map.on('click', async (event) => {
   const { lat, lng } = event.latlng;
   const selectionToken = ++activeSelectionToken;
   clearActiveRoute();
+  clearAnalysisHighlights();
   if (addressMarker) addressLayer.removeLayer(addressMarker);
   addressMarker = L.marker([lat, lng]).addTo(addressLayer);
   const fallbackLabel = {
