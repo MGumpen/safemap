@@ -78,6 +78,18 @@ DATASETS: dict[str, DatasetConfig] = {
         source_path=DEFAULT_DATA_DIR / "vegnett_pluss_gangnett.geojson",
         geometry_kind="line",
     ),
+    "brannstasjoner": DatasetConfig(
+        cli_name="brannstasjoner",
+        table_name="Brannstasjoner",
+        source_path=DEFAULT_DATA_DIR / "brannstasjoner.geojson",
+        geometry_kind="brann_point",
+    ),
+    "tilfluktsrom": DatasetConfig(
+        cli_name="tilfluktsrom",
+        table_name="tilfluktsrom",
+        source_path=DEFAULT_DATA_DIR / "tilfluktsrom.json",
+        geometry_kind="shelter_rows",
+    ),
 }
 
 
@@ -209,6 +221,15 @@ def coerce_float(value: Any) -> float | None:
         return None
 
 
+def coerce_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def load_line_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
     if not config.source_path.exists():
         raise FileNotFoundError(f"Fant ikke kildefil: {config.source_path}")
@@ -260,11 +281,99 @@ def load_line_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
     return rows
 
 
+def load_brannstasjoner_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
+    if not config.source_path.exists():
+        raise FileNotFoundError(f"Fant ikke kildefil: {config.source_path}")
+
+    payload = json.loads(config.source_path.read_text(encoding="utf-8"))
+    features = payload.get("features")
+    if not isinstance(features, list):
+        raise ValueError(f"Ugyldig GeoJSON i {config.source_path}: mangler features-liste.")
+
+    rows: list[tuple[Any, ...]] = []
+    for feature in features:
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") != "Point":
+            continue
+        coords = geometry.get("coordinates") or []
+        if len(coords) < 2:
+            continue
+        props = feature.get("properties") or {}
+        if not isinstance(props, dict):
+            props = {}
+        rows.append(
+            (
+                coerce_int(props.get("OBJECTID")),
+                float(coords[0]),
+                float(coords[1]),
+                normalize_text(props.get("objtype")),
+                coerce_int(props.get("anleggid")),
+                normalize_text(props.get("brannstasjon")),
+                normalize_text(props.get("brannvesen")),
+                normalize_text(props.get("forstedigitaliseringsdato")),
+                normalize_text(props.get("oppdateringsdato")),
+                normalize_text(props.get("opphav")),
+                coerce_int(props.get("noyaktighet")),
+                normalize_text(props.get("informasjon")),
+                normalize_text(props.get("stasjonstype")),
+                normalize_text(props.get("kasernert")),
+                coerce_int(props.get("malemetode")),
+            )
+        )
+
+    return rows
+
+
+def load_tilfluktsrom_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
+    if not config.source_path.exists():
+        raise FileNotFoundError(f"Fant ikke kildefil: {config.source_path}")
+
+    payload = json.loads(config.source_path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        payload = payload.get("features", [])
+    if not isinstance(payload, list):
+        raise ValueError(f"Ugyldig JSON i {config.source_path}: forventet liste.")
+
+    rows: list[tuple[Any, ...]] = []
+    for item in payload:
+        if isinstance(item, dict) and item.get("type") == "Feature":
+            props = item.get("properties") or {}
+        else:
+            props = item
+        if not isinstance(props, dict):
+            continue
+        wkt_geom = normalize_text(props.get("wkt_geom"))
+        if not wkt_geom:
+            continue
+        rows.append(
+            (
+                wkt_geom,
+                coerce_int(props.get("OBJECTID")),
+                coerce_int(props.get("objid")),
+                normalize_text(props.get("objtype")),
+                normalize_text(props.get("lokalid")),
+                normalize_text(props.get("navnerom")),
+                coerce_int(props.get("versjonid")),
+                normalize_text(props.get("datauttaksdato")),
+                normalize_text(props.get("opphav")),
+                coerce_int(props.get("romnr")),
+                coerce_int(props.get("plasser")),
+                normalize_text(props.get("adresse")),
+            )
+        )
+
+    return rows
+
+
 def load_geojson_rows(config: ResolvedDatasetConfig) -> list[tuple[Any, ...]]:
     if config.geometry_kind == "point":
         return load_point_rows(config)
     if config.geometry_kind == "line":
         return load_line_rows(config)
+    if config.geometry_kind == "brann_point":
+        return load_brannstasjoner_rows(config)
+    if config.geometry_kind == "shelter_rows":
+        return load_tilfluktsrom_rows(config)
     raise ValueError(f"Ustottet geometry_kind for {config.cli_name}: {config.geometry_kind}")
 
 
@@ -368,12 +477,79 @@ def ensure_line_table(cursor, table_name: str) -> None:
     )
 
 
+def ensure_brannstasjoner_table(cursor, table_name: str) -> None:
+    _, sql, _ = import_db_modules()
+    table_identifier = sql.Identifier(table_name)
+    geom_index = sql.Identifier(f"{table_name}_shape_gix")
+
+    cursor.execute(
+        sql.SQL(
+            """
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                "OBJECTID" BIGINT PRIMARY KEY,
+                "SHAPE" geometry(Point, 4326) NOT NULL,
+                objtype TEXT,
+                anleggid SMALLINT,
+                brannstasjon TEXT,
+                brannvesen TEXT,
+                forstedigitaliseringsdato TEXT,
+                oppdateringsdato TEXT,
+                opphav TEXT,
+                noyaktighet SMALLINT,
+                informasjon TEXT,
+                stasjonstype TEXT,
+                kasernert TEXT,
+                malemetode SMALLINT
+            );
+            """
+        ).format(table_name=table_identifier)
+    )
+    cursor.execute(
+        sql.SQL("CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} USING GIST (\"SHAPE\");").format(
+            index_name=geom_index,
+            table_name=table_identifier,
+        )
+    )
+
+
+def ensure_tilfluktsrom_table(cursor, table_name: str) -> None:
+    _, sql, _ = import_db_modules()
+    table_identifier = sql.Identifier(table_name)
+
+    cursor.execute(
+        sql.SQL(
+            """
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                wkt_geom TEXT NOT NULL,
+                "OBJECTID" BIGINT PRIMARY KEY,
+                objid BIGINT,
+                objtype TEXT,
+                lokalid TEXT,
+                navnerom TEXT,
+                versjonid BIGINT,
+                datauttaksdato TEXT,
+                opphav TEXT,
+                romnr BIGINT,
+                plasser BIGINT,
+                adresse TEXT
+            );
+            """
+        ).format(table_name=table_identifier)
+    )
+
+
 def ensure_table(cursor, config: DatasetConfig) -> None:
     if config.geometry_kind == "point":
         ensure_point_table(cursor, config.table_name)
         return
     if config.geometry_kind == "line":
         ensure_line_table(cursor, config.table_name)
+        return
+    if config.geometry_kind == "brann_point":
+        ensure_brannstasjoner_table(cursor, config.table_name)
+        return
+    if config.geometry_kind == "shelter_rows":
+        ensure_tilfluktsrom_table(cursor, config.table_name)
         return
     raise ValueError(f"Ustottet geometry_kind for {config.cli_name}: {config.geometry_kind}")
 
@@ -459,12 +635,102 @@ def refresh_line_table(cursor, config: DatasetConfig, rows: list[tuple[Any, ...]
     )
 
 
+def refresh_brannstasjoner_table(cursor, config: DatasetConfig, rows: list[tuple[Any, ...]]) -> None:
+    _, sql, execute_values = import_db_modules()
+    table_identifier = sql.Identifier(config.table_name)
+    cursor.execute(
+        sql.SQL("TRUNCATE TABLE {table_name};").format(
+            table_name=table_identifier
+        )
+    )
+
+    if not rows:
+        return
+
+    insert_sql = sql.SQL(
+        """
+        INSERT INTO {table_name} (
+            "OBJECTID",
+            "SHAPE",
+            objtype,
+            anleggid,
+            brannstasjon,
+            brannvesen,
+            forstedigitaliseringsdato,
+            oppdateringsdato,
+            opphav,
+            noyaktighet,
+            informasjon,
+            stasjonstype,
+            kasernert,
+            malemetode
+        )
+        VALUES %s;
+        """
+    ).format(table_name=table_identifier)
+
+    execute_values(
+        cursor,
+        insert_sql.as_string(cursor.connection),
+        rows,
+        template=(
+            "(%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s, %s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
+    )
+
+
+def refresh_tilfluktsrom_table(cursor, config: DatasetConfig, rows: list[tuple[Any, ...]]) -> None:
+    _, sql, execute_values = import_db_modules()
+    table_identifier = sql.Identifier(config.table_name)
+    cursor.execute(
+        sql.SQL("TRUNCATE TABLE {table_name};").format(
+            table_name=table_identifier
+        )
+    )
+
+    if not rows:
+        return
+
+    insert_sql = sql.SQL(
+        """
+        INSERT INTO {table_name} (
+            wkt_geom,
+            "OBJECTID",
+            objid,
+            objtype,
+            lokalid,
+            navnerom,
+            versjonid,
+            datauttaksdato,
+            opphav,
+            romnr,
+            plasser,
+            adresse
+        )
+        VALUES %s;
+        """
+    ).format(table_name=table_identifier)
+
+    execute_values(
+        cursor,
+        insert_sql.as_string(cursor.connection),
+        rows,
+    )
+
+
 def refresh_table(cursor, config: DatasetConfig, rows: list[tuple[Any, ...]]) -> None:
     if config.geometry_kind == "point":
         refresh_point_table(cursor, config, rows)
         return
     if config.geometry_kind == "line":
         refresh_line_table(cursor, config, rows)
+        return
+    if config.geometry_kind == "brann_point":
+        refresh_brannstasjoner_table(cursor, config, rows)
+        return
+    if config.geometry_kind == "shelter_rows":
+        refresh_tilfluktsrom_table(cursor, config, rows)
         return
     raise ValueError(f"Ustottet geometry_kind for {config.cli_name}: {config.geometry_kind}")
 
@@ -501,7 +767,13 @@ def parse_args() -> argparse.Namespace:
 
 def selected_datasets(dataset_name: str) -> list[DatasetConfig]:
     if dataset_name == "all":
-        return [DATASETS["sykehus"], DATASETS["legevakter"]]
+        return [
+            DATASETS["sykehus"],
+            DATASETS["legevakter"],
+            DATASETS["brannstasjoner"],
+            DATASETS["tilfluktsrom"],
+            DATASETS["vegnett_gangnett"],
+        ]
     return [DATASETS[dataset_name]]
 
 
@@ -532,7 +804,7 @@ def main() -> None:
     for config in datasets:
         rows = load_geojson_rows(config)
         rows_by_dataset.append((config, rows))
-        object_label = "punkter" if config.geometry_kind == "point" else "linjer"
+        object_label = "linjer" if config.geometry_kind == "line" else "rader"
         print(
             f"{config.cli_name}: klar til import fra {config.source_path} "
             f"({len(rows)} {object_label} -> {config.table_name})"

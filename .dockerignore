@@ -1,5 +1,7 @@
 .git
 .venv
+venv
+env
 __pycache__
 *.pyc
 *.pyo
@@ -7,5 +9,11 @@ __pycache__
 *.db
 *.sqlite3
 .env
+.env.*
+!.env.example
 .vscode
 .DS_Store
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.ipynb_checkpoints
