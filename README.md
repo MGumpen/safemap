@@ -32,19 +32,10 @@ docker compose up --build
 Appen blir tilgjengelig på `http://localhost:8000`.
 
 Docker Compose starter både appen og en lokal PostGIS-database. Databasen fylles
-automatisk fra filene i `src/`, så sensor trenger ikke egen `.env` eller tilgang
+automatisk fra filene i `src/`, så bruker trenger ikke egen `.env` eller tilgang
 til ekstern Supabase-database for å teste appen lokalt. Kjør
 `docker compose up --build` på nytt etter kode- eller dataendringer.
 Databasen kan inspiseres med `docker compose exec db psql -U safemap -d safemap`.
-
-Gangruting bygges lokalt på `vegnett_pluss_gangnett` i databasen. For at
-`Gangvei` skal fungere må dere derfor hente og importere `Vegnett Pluss`
-for de kommunene dere vil route i. Walking optimaliserer på estimert gangtid,
-ikke bare meter, og bruker derfor både ganginfrastruktur, store stier og
-forsvarlige veglenker der egen gangvei mangler.
-Hvis startpunkt eller mål ligger utenfor importert gangnett, tegnes luftlinje
-inn til nærmeste ganglenke. Selve gangruten kobler bare sammen lenker som faktisk
-henger sammen i det importerte vegnettet.
 
 `docker compose down` stopper appen.
 `docker compose down -v` sletter den lokale Docker-databasen og bygger den opp
@@ -96,13 +87,6 @@ For å importere Vegnett Pluss-gangnettet til PostGIS:
 ```bash
 python3 scripts/import_geojson_to_postgis.py --dataset vegnett_gangnett
 ```
-
-Etter import brukes tabellen `vegnett_pluss_gangnett` direkte av backend sin
-lokale `walking`-ruter for å finne raskeste gangrute basert på estimert
-gangtid. Hvis startpunkt eller mål ligger utenfor importert gangnett, tegnes
-luftlinje frem til nærmeste ganglenke og ruten fortsetter på gangnettet derfra.
-Appen lager ikke kunstige snarveier mellom ganglenker som ikke henger sammen i
-det importerte vegnettet.
 
 Dette oppretter og fyller disse tabellene:
 
